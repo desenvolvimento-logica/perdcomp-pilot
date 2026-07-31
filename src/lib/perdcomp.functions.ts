@@ -75,7 +75,8 @@ export const obterDeclaracao = createServerFn({ method: "GET" })
 
 const acompanhamentoSchema = z.object({
   declaracao_id: z.string().uuid(),
-  responsavel_id: z.string().uuid().nullable(),
+  ordem_servico: z.string().max(60).default(""),
+  terceiro: z.boolean().default(false),
   aviso_pagamento: z.boolean(),
   aviso_pagamento_data: z.string().nullable(),
   aviso_pagamento_prazo: z.string().nullable(),
