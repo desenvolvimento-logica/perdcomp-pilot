@@ -275,17 +275,37 @@ function Detalhe() {
 
           <Card className="p-5 shadow-panel">
             <h2 className="font-display text-base font-semibold">Log de alterações da equipe</h2>
-            <ul className="mt-4 space-y-2 text-sm">
-              {data.log.map((l) => (
-                <li key={l.id} className="text-muted-foreground">
-                  <strong className="text-foreground">{l.usuario_nome || "Usuário"}</strong> alterou{" "}
-                  <strong className="text-foreground">{l.campo}</strong> em {dataHora(l.criado_em)}
-                  {l.valor_novo ? ` → ${l.valor_novo}` : ""}
-                </li>
-              ))}
-              {data.log.length === 0 && <li className="text-muted-foreground">Sem alterações registradas.</li>}
-            </ul>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Registra apenas os campos que a equipe realmente alterou.
+            </p>
+            {data.log.length === 0 ? (
+              <p className="mt-4 text-sm text-muted-foreground">Sem alterações registradas.</p>
+            ) : (
+              <div className="mt-4 divide-y divide-border overflow-hidden rounded-md border border-border">
+                {data.log.map((l) => (
+                  <div key={l.id} className="flex flex-wrap items-start justify-between gap-3 p-3">
+                    <div className="min-w-[55%]">
+                      <p className="text-sm font-medium">{l.campo}</p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+                        <span className="rounded bg-surface px-1.5 py-0.5 text-muted-foreground line-through">
+                          {l.valor_anterior || "—"}
+                        </span>
+                        <ArrowRight className="size-3 text-muted-foreground" />
+                        <span className="rounded bg-primary/10 px-1.5 py-0.5 font-medium text-primary">
+                          {l.valor_novo || "—"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right text-xs text-muted-foreground">
+                      <p className="font-medium text-foreground">{l.usuario_nome || "Usuário"}</p>
+                      <p>{dataHora(l.criado_em)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
+
         </div>
 
         <Card className="h-fit space-y-5 p-5 shadow-panel lg:sticky lg:top-20">
