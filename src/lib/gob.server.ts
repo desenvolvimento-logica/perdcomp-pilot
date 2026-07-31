@@ -209,7 +209,6 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
     .filter((v): v is string => typeof v === "string");
 
   const achadosExistentes = new Set<string>();
-  const alertasAbertos = new Set<string>();
   for (let i = 0; i < ids.length; i += 500) {
     const fatia = ids.slice(i, i + 500);
     const { data: ach } = await supabaseAdmin
@@ -217,12 +216,6 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
       .select("declaracao_id, codigo")
       .in("declaracao_id", fatia);
     for (const a of ach ?? []) achadosExistentes.add(`${a.declaracao_id}|${a.codigo}`);
-    const { data: alt } = await supabaseAdmin
-      .from("alertas")
-      .select("declaracao_id, tipo")
-      .eq("resolvido", false)
-      .in("declaracao_id", fatia);
-    for (const a of alt ?? []) alertasAbertos.add(`${a.declaracao_id}|${a.tipo}`);
   }
 
   for (const { registro: r, payload } of payloads) {
@@ -295,56 +288,4 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
   await inserirEmBloco("alertas", novosAlertas);
 
   return resultado;
-}
-
-
-function rotuloPrazo(tipo: string): string {
-  if (tipo === "intimacao") return "atendimento da intimação";
-  if (tipo === "aviso_pagamento") return "atendimento do aviso de pagamento";
-  return "compensação de ofício";
-}
-
-export async function gerarAlertasDePrazo(): Promise<number> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: acomps } = await supabaseAdmin
-    .from("acompanhamentos")
-    .select(
-      "declaracao_id, aviso_pagamento, aviso_pagamento_prazo, compensacao_oficio, compensacao_oficio_prazo, intimacao, intimacao_prazo, encerrado",
-    )
-    .eq("encerrado", false);
-
-  let criados = 0;
-  const hoje = new Date();
-  for (const a of acomps ?? []) {
-    const prazos: Array<[string, string | null, boolean]> = [
-      ["aviso_pagamento", a.aviso_pagamento_prazo, a.aviso_pagamento],
-      ["compensacao_oficio", a.compensacao_oficio_prazo, a.compensacao_oficio],
-      ["intimacao", a.intimacao_prazo, a.intimacao],
-    ];
-    for (const [tipo, prazo, ativo] of prazos) {
-      if (!ativo || !prazo) continue;
-      const dias = Math.ceil((new Date(prazo).getTime() - hoje.getTime()) / 86400000);
-      if (dias > 5) continue;
-      const codigoTipo = `prazo_${tipo}`;
-      const { data: jaTem } = await supabaseAdmin
-        .from("alertas")
-        .select("id")
-        .eq("declaracao_id", a.declaracao_id)
-        .eq("tipo", codigoTipo)
-        .eq("resolvido", false)
-        .maybeSingle();
-      if (jaTem) continue;
-      await supabaseAdmin.from("alertas").insert({
-        declaracao_id: a.declaracao_id,
-        tipo: codigoTipo,
-        prioridade: dias <= 1 ? "alta" : "normal",
-        mensagem:
-          dias < 0
-            ? `Prazo de ${rotuloPrazo(tipo)} vencido em ${prazo}.`
-            : `Faltam ${dias} dia(s) para o prazo de ${rotuloPrazo(tipo)} (${prazo}).`,
-      });
-      criados += 1;
-    }
-  }
-  return criados;
 }
