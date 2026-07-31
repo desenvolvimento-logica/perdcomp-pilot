@@ -410,7 +410,7 @@ function Painel() {
                           })
                         }
                       >
-                        Prazos
+                        O.S. / prazos
                       </Button>
                       <Button asChild size="sm" variant="ghost">
                         <Link to="/declaracoes/$id" params={{ id: l.id }}>
