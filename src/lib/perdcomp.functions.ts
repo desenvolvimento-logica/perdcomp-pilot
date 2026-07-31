@@ -80,14 +80,18 @@ const acompanhamentoSchema = z.object({
   aviso_pagamento: z.boolean(),
   aviso_pagamento_data: z.string().nullable(),
   aviso_pagamento_prazo: z.string().nullable(),
+  pagamento_confirmado: z.boolean().default(false),
+  pagamento_confirmado_em: z.string().nullable().default(null),
   compensacao_oficio: z.boolean(),
   compensacao_oficio_prazo: z.string().nullable(),
+  compensacao_oficio_opcao: z.enum(["", "compensacao", "recusa"]).default(""),
   intimacao: z.boolean(),
   intimacao_prazo: z.string().nullable(),
   encerrado: z.boolean(),
   encerrado_em: z.string().nullable(),
   observacao: z.string().max(5000),
 });
+
 
 export const salvarAcompanhamento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
