@@ -115,7 +115,7 @@ function Painel() {
   const salvarFn = useServerFn(salvarAcompanhamento);
   const [busca, setBusca] = useState("");
   const [situacao, setSituacao] = useState("todas");
-  const [aba, setAba] = useState<"ativas" | "prazos" | "alertas" | "encerradas">("ativas");
+  const [aba, setAba] = useState<"ativas" | "prazos" | "semos" | "alertas" | "encerradas" | "terceiros">("ativas");
   const [editando, setEditando] = useState<{ id: string; titulo: string; form: Acomp } | null>(null);
 
   const { data, isPending } = useQuery({ queryKey: ["declaracoes"], queryFn: () => listar() });
