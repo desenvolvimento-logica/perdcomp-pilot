@@ -18,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/declaracoes/$id")({
   head: () => ({
@@ -40,7 +39,8 @@ export const Route = createFileRoute("/_authenticated/declaracoes/$id")({
 });
 
 type Controle = {
-  responsavel_id: string | null;
+  ordem_servico: string;
+  terceiro: boolean;
   aviso_pagamento: boolean;
   aviso_pagamento_data: string | null;
   aviso_pagamento_prazo: string | null;
@@ -54,7 +54,8 @@ type Controle = {
 };
 
 const vazio: Controle = {
-  responsavel_id: null,
+  ordem_servico: "",
+  terceiro: false,
   aviso_pagamento: false,
   aviso_pagamento_data: null,
   aviso_pagamento_prazo: null,
@@ -86,7 +87,8 @@ function Detalhe() {
     if (data?.acompanhamento) {
       const a = data.acompanhamento;
       setForm({
-        responsavel_id: a.responsavel_id,
+        ordem_servico: a.ordem_servico ?? "",
+        terceiro: a.terceiro ?? false,
         aviso_pagamento: a.aviso_pagamento,
         aviso_pagamento_data: a.aviso_pagamento_data,
         aviso_pagamento_prazo: a.aviso_pagamento_prazo,
@@ -282,24 +284,28 @@ function Detalhe() {
           </div>
 
           <div className="space-y-2">
-            <Label>Responsável</Label>
-            <Select
-              value={form.responsavel_id ?? "nenhum"}
-              onValueChange={(v) => setForm({ ...form, responsavel_id: v === "nenhum" ? null : v })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="nenhum">Sem responsável</SelectItem>
-                {data.perfis.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="os">Ordem de serviço</Label>
+            <Input
+              id="os"
+              value={form.ordem_servico}
+              onChange={(e) => setForm({ ...form, ordem_servico: e.target.value })}
+              placeholder="Ex.: OS-2026-0147"
+            />
+            {form.ordem_servico.trim() === "" && !form.terceiro && (
+              <p className="text-xs text-destructive">Declaração sem O.S. vinculada — inclua o número.</p>
+            )}
           </div>
+
+          <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
+            <div>
+              <span className="text-sm font-medium">PERDCOMP de terceiro</span>
+              <p className="text-xs text-muted-foreground">
+                Não acompanhamos; sai do total em acompanhamento.
+              </p>
+            </div>
+            <Switch checked={form.terceiro} onCheckedChange={(v) => setForm({ ...form, terceiro: v })} />
+          </div>
+
 
           <BlocoControle
             titulo="Aviso de pagamento"

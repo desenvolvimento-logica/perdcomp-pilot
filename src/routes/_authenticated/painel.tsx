@@ -50,7 +50,8 @@ export const Route = createFileRoute("/_authenticated/painel")({
 
 type Acomp = {
   declaracao_id: string;
-  responsavel_id: string | null;
+  ordem_servico: string;
+  terceiro: boolean;
   aviso_pagamento: boolean;
   aviso_pagamento_data: string | null;
   aviso_pagamento_prazo: string | null;
@@ -65,7 +66,8 @@ type Acomp = {
 
 const ACOMP_VAZIO = (id: string): Acomp => ({
   declaracao_id: id,
-  responsavel_id: null,
+  ordem_servico: "",
+  terceiro: false,
   aviso_pagamento: false,
   aviso_pagamento_data: null,
   aviso_pagamento_prazo: null,
@@ -113,7 +115,7 @@ function Painel() {
   const salvarFn = useServerFn(salvarAcompanhamento);
   const [busca, setBusca] = useState("");
   const [situacao, setSituacao] = useState("todas");
-  const [aba, setAba] = useState<"ativas" | "prazos" | "alertas" | "encerradas">("ativas");
+  const [aba, setAba] = useState<"ativas" | "prazos" | "semos" | "alertas" | "encerradas" | "terceiros">("ativas");
   const [editando, setEditando] = useState<{ id: string; titulo: string; form: Acomp } | null>(null);
 
   const { data, isPending } = useQuery({ queryKey: ["declaracoes"], queryFn: () => listar() });
@@ -150,7 +152,6 @@ function Painel() {
     for (const a of data.alertas) {
       if (!a.resolvido) alertasAbertos.set(a.declaracao_id, (alertasAbertos.get(a.declaracao_id) ?? 0) + 1);
     }
-    const perfilPorId = new Map(data.perfis.map((p) => [p.id, p.nome]));
 
     return data.declaracoes.map((d) => {
       const acomp = acompPorId.get(d.id);
@@ -158,7 +159,8 @@ function Painel() {
         ...d,
         acomp,
         encerrado: acomp?.encerrado ?? false,
-        responsavel: acomp?.responsavel_id ? (perfilPorId.get(acomp.responsavel_id) ?? "—") : "—",
+        terceiro: acomp?.terceiro ?? false,
+        ordemServico: acomp?.ordem_servico ?? "",
         achados: achadosPend.get(d.id) ?? 0,
         alertas: alertasAbertos.get(d.id) ?? 0,
         prazos: prazosDe(acomp),
@@ -172,15 +174,18 @@ function Painel() {
   );
 
   const filtradas = linhas.filter((l) => {
+    if (aba !== "terceiros" && l.terceiro) return false;
     if (aba === "ativas" && l.encerrado) return false;
     if (aba === "encerradas" && !l.encerrado) return false;
     if (aba === "alertas" && l.alertas === 0) return false;
     if (aba === "prazos" && l.prazos.length === 0) return false;
+    if (aba === "semos" && (l.ordemServico.trim() !== "" || l.encerrado)) return false;
+    if (aba === "terceiros" && !l.terceiro) return false;
     if (situacao !== "todas" && l.situacao !== situacao) return false;
     if (busca) {
       const t = busca.toLowerCase();
       const alvo =
-        `${l.numero_perdcomp ?? ""} ${l.cnpj ?? ""} ${l.razao_social ?? ""} ${l.nome ?? ""}`.toLowerCase();
+        `${l.numero_perdcomp ?? ""} ${l.cnpj ?? ""} ${l.razao_social ?? ""} ${l.nome ?? ""} ${l.ordemServico}`.toLowerCase();
       if (!alvo.includes(t)) return false;
     }
     return true;
@@ -191,10 +196,13 @@ function Painel() {
       ? [...filtradas].sort((a, b) => (a.prazos[0]?.dias ?? 9999) - (b.prazos[0]?.dias ?? 9999))
       : filtradas;
 
-  const totalAlertas = linhas.reduce((s, l) => s + l.alertas, 0);
-  const totalAchados = linhas.reduce((s, l) => s + l.achados, 0);
-  const ativas = linhas.filter((l) => !l.encerrado).length;
-  const prazosCriticos = linhas.filter((l) => l.prazos.some((p) => (p.dias ?? 99) <= 5)).length;
+  const proprias = linhas.filter((l) => !l.terceiro);
+  const totalAlertas = proprias.reduce((s, l) => s + l.alertas, 0);
+  const totalAchados = proprias.reduce((s, l) => s + l.achados, 0);
+  const ativas = proprias.filter((l) => !l.encerrado).length;
+  const semOs = proprias.filter((l) => !l.encerrado && l.ordemServico.trim() === "").length;
+  const prazosCriticos = proprias.filter((l) => l.prazos.some((p) => (p.dias ?? 99) <= 5)).length;
+
 
   return (
     <main className="mx-auto max-w-[1500px] space-y-6 px-4 py-8">
@@ -212,16 +220,16 @@ function Painel() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Indicador rotulo="Em acompanhamento ativo" valor={ativas} />
+        <Indicador rotulo="Em acompanhamento ativo (exclui terceiros)" valor={ativas} />
+        <Indicador rotulo="Sem O.S. vinculada" valor={semOs} tom="warning" />
         <Indicador rotulo="Prazos vencendo (até 5 dias)" valor={prazosCriticos} tom="destructive" />
         <Indicador rotulo="Alertas em aberto" valor={totalAlertas} tom="warning" />
-        <Indicador rotulo="Apontamentos de auditoria" valor={totalAchados} tom="destructive" />
       </div>
 
       <Card className="overflow-hidden p-0 shadow-panel">
         <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
           <div className="flex overflow-hidden rounded-md border border-border">
-            {(["ativas", "prazos", "alertas", "encerradas"] as const).map((k) => (
+            {(["ativas", "prazos", "semos", "alertas", "encerradas", "terceiros"] as const).map((k) => (
               <button
                 key={k}
                 onClick={() => setAba(k)}
@@ -229,7 +237,14 @@ function Painel() {
                   aba === k ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-muted"
                 }`}
               >
-                {k === "alertas" ? "Com alerta" : k === "prazos" ? "Com prazo" : k}
+                {k === "alertas"
+                  ? "Com alerta"
+                  : k === "prazos"
+                    ? "Com prazo"
+                    : k === "semos"
+                      ? "Sem O.S."
+                      : k}
+
               </button>
             ))}
           </div>
@@ -262,6 +277,7 @@ function Painel() {
             <thead className="bg-surface text-left text-xs tracking-wide text-muted-foreground uppercase">
               <tr>
                 <th className="px-4 py-3 font-medium">Nº da declaração</th>
+                <th className="px-4 py-3 font-medium">O.S.</th>
                 <th className="px-4 py-3 font-medium">CNPJ</th>
                 <th className="px-4 py-3 font-medium">Razão social</th>
                 <th className="px-4 py-3 font-medium">Tributo / competência</th>
@@ -276,14 +292,14 @@ function Painel() {
             <tbody>
               {isPending && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={11} className="px-4 py-12 text-center text-muted-foreground">
                     Carregando declarações…
                   </td>
                 </tr>
               )}
               {!isPending && ordenadas.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={11} className="px-4 py-12 text-center text-muted-foreground">
                     Nenhuma declaração aqui. Use “Sincronizar com o GOB” para trazer os dados.
                   </td>
                 </tr>
@@ -300,10 +316,25 @@ function Painel() {
                     </Link>
                     <p className="mt-0.5 text-xs text-muted-foreground">{l.tipo_documento ?? "—"}</p>
                   </td>
+                  <td className="px-4 py-3">
+                    {l.ordemServico.trim() ? (
+                      <span className="numero text-xs font-medium">{l.ordemServico}</span>
+                    ) : l.terceiro ? (
+                      <span className="text-xs text-muted-foreground">Terceiro</span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-xs text-warning-foreground">
+                        <AlertTriangle className="size-3" /> Sem O.S.
+                      </span>
+                    )}
+                  </td>
                   <td className="numero px-4 py-3 text-xs">{documento(l.cnpj)}</td>
                   <td className="max-w-64 px-4 py-3">
                     <p className="truncate font-medium">{l.razao_social ?? l.nome ?? "—"}</p>
-                    <p className="truncate text-xs text-muted-foreground">Resp.: {l.responsavel}</p>
+                    {l.terceiro && (
+                      <p className="truncate text-xs text-muted-foreground">
+                        PERDCOMP de terceiro — fora do acompanhamento
+                      </p>
+                    )}
                   </td>
                   <td className="max-w-56 px-4 py-3">
                     <p className="truncate">
@@ -379,7 +410,7 @@ function Painel() {
                           })
                         }
                       >
-                        Prazos
+                        O.S. / prazos
                       </Button>
                       <Button asChild size="sm" variant="ghost">
                         <Link to="/declaracoes/$id" params={{ id: l.id }}>
@@ -423,11 +454,31 @@ function DialogPrazos({
     <Dialog open={estado !== null} onOpenChange={(o) => !o && onFechar()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Prazos de atendimento</DialogTitle>
+          <DialogTitle>O.S. e prazos de atendimento</DialogTitle>
           <DialogDescription className="truncate">{estado?.titulo}</DialogDescription>
         </DialogHeader>
         {form && (
           <div className="space-y-3">
+            <div className="space-y-1.5 rounded-md border border-border p-3">
+              <Label className="text-xs text-muted-foreground">Número da ordem de serviço</Label>
+              <Input
+                value={form.ordem_servico}
+                onChange={(e) => setForm({ ...form, ordem_servico: e.target.value })}
+                placeholder="Ex.: OS-2026-0147"
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
+              <div>
+                <span className="text-sm font-medium">PERDCOMP de terceiro</span>
+                <p className="text-xs text-muted-foreground">
+                  Não é nossa responsabilidade; sai do total em acompanhamento.
+                </p>
+              </div>
+              <Switch
+                checked={form.terceiro}
+                onCheckedChange={(v) => setForm({ ...form, terceiro: v })}
+              />
+            </div>
             <LinhaPrazo
               titulo="Aviso de pagamento"
               ativo={form.aviso_pagamento}

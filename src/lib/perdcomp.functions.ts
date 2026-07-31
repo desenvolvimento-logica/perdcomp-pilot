@@ -75,7 +75,8 @@ export const obterDeclaracao = createServerFn({ method: "GET" })
 
 const acompanhamentoSchema = z.object({
   declaracao_id: z.string().uuid(),
-  responsavel_id: z.string().uuid().nullable(),
+  ordem_servico: z.string().max(60).default(""),
+  terceiro: z.boolean().default(false),
   aviso_pagamento: z.boolean(),
   aviso_pagamento_data: z.string().nullable(),
   aviso_pagamento_prazo: z.string().nullable(),
@@ -114,7 +115,8 @@ export const salvarAcompanhamento = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     const campos: Array<[string, string]> = [
-      ["responsavel_id", "Responsável"],
+      ["ordem_servico", "Ordem de serviço"],
+      ["terceiro", "PERDCOMP de terceiro"],
       ["aviso_pagamento", "Aviso de pagamento"],
       ["aviso_pagamento_data", "Data do aviso de pagamento"],
     ["aviso_pagamento_prazo", "Prazo de atendimento do aviso de pagamento"],
