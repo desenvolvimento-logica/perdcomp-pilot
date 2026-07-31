@@ -20,6 +20,7 @@ export type Database = {
           aviso_pagamento_data: string | null
           aviso_pagamento_prazo: string | null
           compensacao_oficio: boolean
+          compensacao_oficio_opcao: string
           compensacao_oficio_prazo: string | null
           declaracao_id: string
           encerrado: boolean
@@ -28,6 +29,8 @@ export type Database = {
           intimacao_prazo: string | null
           observacao: string
           ordem_servico: string
+          pagamento_confirmado: boolean
+          pagamento_confirmado_em: string | null
           responsavel_id: string | null
           terceiro: boolean
           updated_at: string
@@ -37,6 +40,7 @@ export type Database = {
           aviso_pagamento_data?: string | null
           aviso_pagamento_prazo?: string | null
           compensacao_oficio?: boolean
+          compensacao_oficio_opcao?: string
           compensacao_oficio_prazo?: string | null
           declaracao_id: string
           encerrado?: boolean
@@ -45,6 +49,8 @@ export type Database = {
           intimacao_prazo?: string | null
           observacao?: string
           ordem_servico?: string
+          pagamento_confirmado?: boolean
+          pagamento_confirmado_em?: string | null
           responsavel_id?: string | null
           terceiro?: boolean
           updated_at?: string
@@ -54,6 +60,7 @@ export type Database = {
           aviso_pagamento_data?: string | null
           aviso_pagamento_prazo?: string | null
           compensacao_oficio?: boolean
+          compensacao_oficio_opcao?: string
           compensacao_oficio_prazo?: string | null
           declaracao_id?: string
           encerrado?: boolean
@@ -62,6 +69,8 @@ export type Database = {
           intimacao_prazo?: string | null
           observacao?: string
           ordem_servico?: string
+          pagamento_confirmado?: boolean
+          pagamento_confirmado_em?: string | null
           responsavel_id?: string | null
           terceiro?: boolean
           updated_at?: string
