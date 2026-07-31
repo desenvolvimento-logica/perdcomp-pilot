@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { RefreshCw, AlertTriangle, Search, BellRing, CalendarClock, Loader2 } from "lucide-react";
+import { RefreshCw, AlertTriangle, Search, BellRing, CalendarClock, Loader2, Download } from "lucide-react";
 
 import { listarDeclaracoes, salvarAcompanhamento, sincronizar } from "@/lib/perdcomp.functions";
 import { moeda, dataHora, documento, tomSituacao } from "@/lib/formato";
