@@ -88,7 +88,8 @@ function Detalhe() {
     if (data?.acompanhamento) {
       const a = data.acompanhamento;
       setForm({
-        responsavel_id: a.responsavel_id,
+        ordem_servico: a.ordem_servico ?? "",
+        terceiro: a.terceiro ?? false,
         aviso_pagamento: a.aviso_pagamento,
         aviso_pagamento_data: a.aviso_pagamento_data,
         aviso_pagamento_prazo: a.aviso_pagamento_prazo,
