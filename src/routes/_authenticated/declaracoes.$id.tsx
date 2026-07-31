@@ -464,7 +464,7 @@ function BlocoControle({
   rotuloPrazo?: string;
   prazo?: string | null;
   onPrazo?: (v: string | null) => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) {
   const dias = ativo ? diasRestantes(onPrazo ? (prazo ?? null) : data) : null;
   return (
