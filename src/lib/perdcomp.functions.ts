@@ -6,7 +6,7 @@ export const sincronizar = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
     const { sincronizarComGob, gerarAlertasDePrazo } = await import("@/lib/gob.server");
-    const resultado = await sincronizarComGob(200);
+    const resultado = await sincronizarComGob(3000);
     const prazos = await gerarAlertasDePrazo();
     return { ...resultado, alertas: resultado.alertas + prazos };
   });
