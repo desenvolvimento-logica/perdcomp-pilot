@@ -358,8 +358,8 @@ export async function gerarAlertasDePrazo(): Promise<number> {
         prioridade: dias <= 1 ? "alta" : "normal",
         mensagem:
           dias < 0
-            ? `Prazo de ${tipo === "intimacao" ? "atendimento da intimação" : "compensação de ofício"} vencido em ${prazo}.`
-            : `Faltam ${dias} dia(s) para o prazo de ${tipo === "intimacao" ? "atendimento da intimação" : "compensação de ofício"} (${prazo}).`,
+            ? `Prazo de ${rotuloPrazo(tipo)} vencido em ${prazo}.`
+            : `Faltam ${dias} dia(s) para o prazo de ${rotuloPrazo(tipo)} (${prazo}).`,
       });
       criados += 1;
     }
