@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { RefreshCw, AlertTriangle, Search, BellRing, CalendarClock, Loader2 } from "lucide-react";
+import { RefreshCw, AlertTriangle, Search, BellRing, CalendarClock, Loader2, Download } from "lucide-react";
 
 import { listarDeclaracoes, salvarAcompanhamento, sincronizar } from "@/lib/perdcomp.functions";
 import { moeda, dataHora, documento, tomSituacao } from "@/lib/formato";
@@ -203,6 +203,65 @@ function Painel() {
   const semOs = proprias.filter((l) => !l.encerrado && l.ordemServico.trim() === "").length;
   const prazosCriticos = proprias.filter((l) => l.prazos.some((p) => (p.dias ?? 99) <= 5)).length;
 
+  function exportarCsv() {
+    if (ordenadas.length === 0) {
+      toast.error("Nenhuma declaração na visão atual para exportar.");
+      return;
+    }
+    const cab = [
+      "Número da declaração",
+      "CNPJ",
+      "Razão social",
+      "Tributo/Competência",
+      "Situação",
+      "Data de transmissão",
+      "Crédito total",
+      "Valor utilizado",
+      "Saldo restante",
+      "Ordem de serviço",
+      "Terceiro",
+      "Aviso de pagamento (prazo)",
+      "Compensação de ofício (prazo)",
+      "Intimação (prazo)",
+      "Próximo prazo (dias)",
+      "Achados pendentes",
+      "Alertas em aberto",
+      "Situação interna",
+    ];
+    const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const linhasCsv = ordenadas.map((l) =>
+      [
+        l.numero_perdcomp ?? "",
+        l.cnpj ?? "",
+        l.razao_social ?? l.nome ?? "",
+        [l.grupo_tributo, l.periodo_apuracao].filter(Boolean).join(" / "),
+        l.situacao ?? "",
+        dataHora(l.data_transmissao ?? null),
+        l.valor_total_credito ?? "",
+        l.valor_utilizado ?? "",
+        l.saldo_restante ?? "",
+        l.ordemServico,
+        l.terceiro ? "Sim" : "Não",
+        dataBr(l.acomp?.aviso_pagamento_prazo ?? null),
+        dataBr(l.acomp?.compensacao_oficio_prazo ?? null),
+        dataBr(l.acomp?.intimacao_prazo ?? null),
+        l.prazos[0]?.dias ?? "",
+        l.achados,
+        l.alertas,
+        l.encerrado ? "Encerrada" : l.terceiro ? "Terceiro" : "Em acompanhamento",
+      ]
+        .map(esc)
+        .join(";"),
+    );
+    const csv = `\uFEFF${cab.map(esc).join(";")}\n${linhasCsv.join("\n")}`;
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `perdcomp-${aba}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${ordenadas.length} declarações exportadas.`);
+  }
 
   return (
     <main className="mx-auto max-w-[1500px] space-y-6 px-4 py-8">
@@ -213,11 +272,18 @@ function Painel() {
             Dados do GOB · última sincronização {dataHora(linhas[0]?.ultima_sincronizacao ?? null)}
           </p>
         </div>
-        <Button onClick={() => sync.mutate()} disabled={sync.isPending}>
-          {sync.isPending ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-          Sincronizar com o GOB
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={exportarCsv}>
+            <Download className="size-4" />
+            Exportar ({ordenadas.length})
+          </Button>
+          <Button onClick={() => sync.mutate()} disabled={sync.isPending}>
+            {sync.isPending ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+            Sincronizar com o GOB
+          </Button>
+        </div>
       </div>
+
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Indicador rotulo="Em acompanhamento ativo (exclui terceiros)" valor={ativas} />
