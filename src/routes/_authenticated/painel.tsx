@@ -316,12 +316,27 @@ function Painel() {
                     </Link>
                     <p className="mt-0.5 text-xs text-muted-foreground">{l.tipo_documento ?? "—"}</p>
                   </td>
+                  <td className="px-4 py-3">
+                    {l.ordemServico.trim() ? (
+                      <span className="numero text-xs font-medium">{l.ordemServico}</span>
+                    ) : l.terceiro ? (
+                      <span className="text-xs text-muted-foreground">Terceiro</span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-xs text-warning-foreground">
+                        <AlertTriangle className="size-3" /> Sem O.S.
+                      </span>
+                    )}
+                  </td>
                   <td className="numero px-4 py-3 text-xs">{documento(l.cnpj)}</td>
                   <td className="max-w-64 px-4 py-3">
                     <p className="truncate font-medium">{l.razao_social ?? l.nome ?? "—"}</p>
-                    <p className="truncate text-xs text-muted-foreground">Resp.: {l.responsavel}</p>
+                    {l.terceiro && (
+                      <p className="truncate text-xs text-muted-foreground">
+                        PERDCOMP de terceiro — fora do acompanhamento
+                      </p>
+                    )}
                   </td>
-                  <td className="max-w-56 px-4 py-3">
+
                     <p className="truncate">
                       {l.grupo_tributo ?? l.tipo_credito ?? "—"}
                       {l.codigo_receita ? ` · ${l.codigo_receita}` : ""}
