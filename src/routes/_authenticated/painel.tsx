@@ -277,6 +277,7 @@ function Painel() {
             <thead className="bg-surface text-left text-xs tracking-wide text-muted-foreground uppercase">
               <tr>
                 <th className="px-4 py-3 font-medium">Nº da declaração</th>
+                <th className="px-4 py-3 font-medium">O.S.</th>
                 <th className="px-4 py-3 font-medium">CNPJ</th>
                 <th className="px-4 py-3 font-medium">Razão social</th>
                 <th className="px-4 py-3 font-medium">Tributo / competência</th>
