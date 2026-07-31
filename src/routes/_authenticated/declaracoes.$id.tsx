@@ -43,6 +43,7 @@ type Controle = {
   responsavel_id: string | null;
   aviso_pagamento: boolean;
   aviso_pagamento_data: string | null;
+  aviso_pagamento_prazo: string | null;
   compensacao_oficio: boolean;
   compensacao_oficio_prazo: string | null;
   intimacao: boolean;
@@ -56,6 +57,7 @@ const vazio: Controle = {
   responsavel_id: null,
   aviso_pagamento: false,
   aviso_pagamento_data: null,
+  aviso_pagamento_prazo: null,
   compensacao_oficio: false,
   compensacao_oficio_prazo: null,
   intimacao: false,
@@ -87,6 +89,7 @@ function Detalhe() {
         responsavel_id: a.responsavel_id,
         aviso_pagamento: a.aviso_pagamento,
         aviso_pagamento_data: a.aviso_pagamento_data,
+        aviso_pagamento_prazo: a.aviso_pagamento_prazo,
         compensacao_oficio: a.compensacao_oficio,
         compensacao_oficio_prazo: a.compensacao_oficio_prazo,
         intimacao: a.intimacao,
@@ -305,6 +308,9 @@ function Detalhe() {
             rotuloData="Data do aviso"
             data={form.aviso_pagamento_data}
             onData={(v) => setForm({ ...form, aviso_pagamento_data: v })}
+            rotuloPrazo="Prazo para atender"
+            prazo={form.aviso_pagamento_prazo}
+            onPrazo={(v) => setForm({ ...form, aviso_pagamento_prazo: v })}
           />
           <BlocoControle
             titulo="Compensação de ofício"
@@ -358,6 +364,9 @@ function BlocoControle({
   rotuloData,
   data,
   onData,
+  rotuloPrazo,
+  prazo,
+  onPrazo,
 }: {
   titulo: string;
   ativo: boolean;
@@ -365,8 +374,11 @@ function BlocoControle({
   rotuloData: string;
   data: string | null;
   onData: (v: string | null) => void;
+  rotuloPrazo?: string;
+  prazo?: string | null;
+  onPrazo?: (v: string | null) => void;
 }) {
-  const dias = ativo ? diasRestantes(data) : null;
+  const dias = ativo ? diasRestantes(onPrazo ? (prazo ?? null) : data) : null;
   return (
     <div className="space-y-2 rounded-md border border-border p-3">
       <div className="flex items-center justify-between gap-3">
@@ -377,6 +389,12 @@ function BlocoControle({
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">{rotuloData}</Label>
           <Input type="date" value={data ?? ""} onChange={(e) => onData(e.target.value || null)} />
+          {onPrazo && (
+            <>
+              <Label className="text-xs text-muted-foreground">{rotuloPrazo}</Label>
+              <Input type="date" value={prazo ?? ""} onChange={(e) => onPrazo(e.target.value || null)} />
+            </>
+          )}
           {dias !== null && (
             <p className={`text-xs ${dias <= 1 ? "text-destructive" : "text-muted-foreground"}`}>
               {dias < 0 ? `Vencido há ${Math.abs(dias)} dia(s)` : `Faltam ${dias} dia(s)`}

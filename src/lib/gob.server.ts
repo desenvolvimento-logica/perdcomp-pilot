@@ -146,6 +146,15 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
           numero_perdcomp: str(r["numeroPerdcomp"]),
           cnpj: str(r["cnpj"]) ?? str(r["detentorCredito"]),
           nome: str(r["name"]),
+          razao_social: str(r["accountName"]) ?? str(r["name"]),
+          grupo_tributo: str(r["grupoTributo"]),
+          codigo_receita: str(r["codigoReceita"]),
+          processo_administrativo: str(r["processoAdministrativo"]),
+          processo_judicial: str(r["processoJudicial"]),
+          processo_habilitacao: str(r["processoHabilitacao"]),
+          credito_atualizado: num(r["creditoAtualizado"]),
+          total_debitos: num(r["totalDebitos"]),
+          saldo_credito_original: num(r["saldoCreditoOriginal"]),
           tipo_documento: str(r["tipoDocumento"]),
           tipo_credito: str(r["tipoCredito"]),
           situacao: str(r["situacao"]),
@@ -307,17 +316,26 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
 }
 
 
+function rotuloPrazo(tipo: string): string {
+  if (tipo === "intimacao") return "atendimento da intimação";
+  if (tipo === "aviso_pagamento") return "atendimento do aviso de pagamento";
+  return "compensação de ofício";
+}
+
 export async function gerarAlertasDePrazo(): Promise<number> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: acomps } = await supabaseAdmin
     .from("acompanhamentos")
-    .select("declaracao_id, compensacao_oficio, compensacao_oficio_prazo, intimacao, intimacao_prazo, encerrado")
+    .select(
+      "declaracao_id, aviso_pagamento, aviso_pagamento_prazo, compensacao_oficio, compensacao_oficio_prazo, intimacao, intimacao_prazo, encerrado",
+    )
     .eq("encerrado", false);
 
   let criados = 0;
   const hoje = new Date();
   for (const a of acomps ?? []) {
     const prazos: Array<[string, string | null, boolean]> = [
+      ["aviso_pagamento", a.aviso_pagamento_prazo, a.aviso_pagamento],
       ["compensacao_oficio", a.compensacao_oficio_prazo, a.compensacao_oficio],
       ["intimacao", a.intimacao_prazo, a.intimacao],
     ];
@@ -340,8 +358,8 @@ export async function gerarAlertasDePrazo(): Promise<number> {
         prioridade: dias <= 1 ? "alta" : "normal",
         mensagem:
           dias < 0
-            ? `Prazo de ${tipo === "intimacao" ? "atendimento da intimação" : "compensação de ofício"} vencido em ${prazo}.`
-            : `Faltam ${dias} dia(s) para o prazo de ${tipo === "intimacao" ? "atendimento da intimação" : "compensação de ofício"} (${prazo}).`,
+            ? `Prazo de ${rotuloPrazo(tipo)} vencido em ${prazo}.`
+            : `Faltam ${dias} dia(s) para o prazo de ${rotuloPrazo(tipo)} (${prazo}).`,
       });
       criados += 1;
     }
