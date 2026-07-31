@@ -285,24 +285,28 @@ function Detalhe() {
           </div>
 
           <div className="space-y-2">
-            <Label>Responsável</Label>
-            <Select
-              value={form.responsavel_id ?? "nenhum"}
-              onValueChange={(v) => setForm({ ...form, responsavel_id: v === "nenhum" ? null : v })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="nenhum">Sem responsável</SelectItem>
-                {data.perfis.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="os">Ordem de serviço</Label>
+            <Input
+              id="os"
+              value={form.ordem_servico}
+              onChange={(e) => setForm({ ...form, ordem_servico: e.target.value })}
+              placeholder="Ex.: OS-2026-0147"
+            />
+            {form.ordem_servico.trim() === "" && !form.terceiro && (
+              <p className="text-xs text-destructive">Declaração sem O.S. vinculada — inclua o número.</p>
+            )}
           </div>
+
+          <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
+            <div>
+              <span className="text-sm font-medium">PERDCOMP de terceiro</span>
+              <p className="text-xs text-muted-foreground">
+                Não acompanhamos; sai do total em acompanhamento.
+              </p>
+            </div>
+            <Switch checked={form.terceiro} onCheckedChange={(v) => setForm({ ...form, terceiro: v })} />
+          </div>
+
 
           <BlocoControle
             titulo="Aviso de pagamento"
