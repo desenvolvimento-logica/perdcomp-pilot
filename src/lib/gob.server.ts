@@ -244,25 +244,13 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
         situacao_anterior: anterior.situacao,
         situacao_nova: situacao,
       });
-      const s = (anterior.situacao ?? "").toLowerCase();
-      if (s.includes("análise") || s.includes("analise")) {
-        novosAlertas.push({
-          declaracao_id: declaracaoId,
-          tipo: "mudanca_status",
-          prioridade: "alta",
-          mensagem: `Situação alterada de "${anterior.situacao}" para "${situacao}".`,
-        });
-        resultado.alertas += 1;
-      }
-    }
-
-    if (ehPendencia(situacao) && !alertasAbertos.has(`${declaracaoId}|pendencia`)) {
-      alertasAbertos.add(`${declaracaoId}|pendencia`);
+      // Único alerta do sistema: mudança de situação no GOB.
+      // Pendências e achados ficam apenas na auditoria.
       novosAlertas.push({
         declaracao_id: declaracaoId,
-        tipo: "pendencia",
+        tipo: "mudanca_status",
         prioridade: "alta",
-        mensagem: `GOB sinalizou "${situacao}" — tratar como pendência de alta prioridade.`,
+        mensagem: `Situação alterada de "${anterior.situacao ?? "—"}" para "${situacao}".`,
       });
       resultado.alertas += 1;
     }
@@ -277,16 +265,10 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
         descricao: achado.descricao,
         severidade: achado.severidade,
       });
-      novosAlertas.push({
-        declaracao_id: declaracaoId,
-        tipo: "auditoria",
-        prioridade: achado.severidade === "critico" ? "alta" : "normal",
-        mensagem: `Novo achado de auditoria: ${achado.descricao}`,
-      });
       resultado.achados += 1;
-      resultado.alertas += 1;
     }
   }
+
 
   async function inserirEmBloco(
     tabela: "acompanhamentos" | "status_historico" | "alertas" | "auditoria_achados",
