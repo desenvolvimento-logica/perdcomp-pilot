@@ -10,24 +10,35 @@ function gobConfig() {
   return { url: url.replace(/\/$/, ""), token };
 }
 
-export async function fetchPerdcomps(maxSize = 200): Promise<GobPerdcomp[]> {
+export async function fetchPerdcomps(limite = 3000): Promise<GobPerdcomp[]> {
   const { url, token } = gobConfig();
-  const qs = new URLSearchParams({
-    maxSize: String(maxSize),
-    offset: "0",
-    orderBy: "modifiedAt",
-    order: "desc",
-  });
-  const res = await fetch(`${url}/api/v1/Perdcomp?${qs.toString()}`, {
-    headers: { "X-Api-Key": token, Accept: "application/json" },
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Falha ao consultar o GOB [${res.status}]: ${body.slice(0, 300)}`);
+  const pagina = 200;
+  const todos: GobPerdcomp[] = [];
+
+  for (let offset = 0; offset < limite; offset += pagina) {
+    const qs = new URLSearchParams({
+      maxSize: String(Math.min(pagina, limite - offset)),
+      offset: String(offset),
+      orderBy: "modifiedAt",
+      order: "desc",
+    });
+    const res = await fetch(`${url}/api/v1/Perdcomp?${qs.toString()}`, {
+      headers: { "X-Api-Key": token, Accept: "application/json" },
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Falha ao consultar o GOB [${res.status}]: ${body.slice(0, 300)}`);
+    }
+    const json = (await res.json()) as { list?: GobPerdcomp[]; total?: number };
+    const lista = json.list ?? [];
+    todos.push(...lista);
+    if (lista.length < pagina) break;
+    if (typeof json.total === "number" && todos.length >= json.total) break;
   }
-  const json = (await res.json()) as { list?: GobPerdcomp[] };
-  return json.list ?? [];
+
+  return todos;
 }
+
 
 function num(v: unknown): number | null {
   return typeof v === "number" ? v : null;
