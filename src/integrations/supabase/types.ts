@@ -27,7 +27,9 @@ export type Database = {
           intimacao: boolean
           intimacao_prazo: string | null
           observacao: string
+          ordem_servico: string
           responsavel_id: string | null
+          terceiro: boolean
           updated_at: string
         }
         Insert: {
@@ -42,7 +44,9 @@ export type Database = {
           intimacao?: boolean
           intimacao_prazo?: string | null
           observacao?: string
+          ordem_servico?: string
           responsavel_id?: string | null
+          terceiro?: boolean
           updated_at?: string
         }
         Update: {
@@ -57,7 +61,9 @@ export type Database = {
           intimacao?: boolean
           intimacao_prazo?: string | null
           observacao?: string
+          ordem_servico?: string
           responsavel_id?: string | null
+          terceiro?: boolean
           updated_at?: string
         }
         Relationships: [
