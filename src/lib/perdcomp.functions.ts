@@ -19,7 +19,7 @@ export const listarDeclaracoes = createServerFn({ method: "GET" })
       supabase
         .from("declaracoes")
         .select(
-          "id, numero_perdcomp, cnpj, nome, tipo_documento, tipo_credito, situacao, periodo_apuracao, data_transmissao, ultimo_registro, valor_total_credito, valor_utilizado, saldo_restante, ultima_sincronizacao",
+          "id, numero_perdcomp, cnpj, nome, razao_social, tipo_documento, tipo_credito, grupo_tributo, codigo_receita, situacao, ajuda_situacao, periodo_apuracao, data_transmissao, ultimo_registro, valor_total_credito, valor_utilizado, saldo_restante, credito_atualizado, total_debitos, processo_administrativo, processo_judicial, ultima_sincronizacao",
         )
         .order("data_transmissao", { ascending: false })
         .limit(500),
@@ -78,6 +78,7 @@ const acompanhamentoSchema = z.object({
   responsavel_id: z.string().uuid().nullable(),
   aviso_pagamento: z.boolean(),
   aviso_pagamento_data: z.string().nullable(),
+  aviso_pagamento_prazo: z.string().nullable(),
   compensacao_oficio: z.boolean(),
   compensacao_oficio_prazo: z.string().nullable(),
   intimacao: z.boolean(),
@@ -116,6 +117,7 @@ export const salvarAcompanhamento = createServerFn({ method: "POST" })
       ["responsavel_id", "Responsável"],
       ["aviso_pagamento", "Aviso de pagamento"],
       ["aviso_pagamento_data", "Data do aviso de pagamento"],
+    ["aviso_pagamento_prazo", "Prazo de atendimento do aviso de pagamento"],
       ["compensacao_oficio", "Compensação de ofício"],
       ["compensacao_oficio_prazo", "Prazo da compensação de ofício"],
       ["intimacao", "Intimação — análise preliminar"],
