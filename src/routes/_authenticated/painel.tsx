@@ -122,7 +122,7 @@ function Painel() {
   const salvarFn = useServerFn(salvarAcompanhamento);
   const [busca, setBusca] = useState("");
   const [situacao, setSituacao] = useState("todas");
-  const [aba, setAba] = useState<"ativas" | "prazos" | "semos" | "alertas" | "encerradas" | "terceiros">("ativas");
+  const [aba, setAba] = useState<"ativas" | "prazos" | "semos" | "auditoria" | "alertas" | "encerradas" | "terceiros">("ativas");
   const [editando, setEditando] = useState<{ id: string; titulo: string; form: Acomp } | null>(null);
 
   const { data, isPending } = useQuery({ queryKey: ["declaracoes"], queryFn: () => listar() });
@@ -185,6 +185,7 @@ function Painel() {
     if (aba === "ativas" && l.encerrado) return false;
     if (aba === "encerradas" && !l.encerrado) return false;
     if (aba === "alertas" && l.alertas === 0) return false;
+    if (aba === "auditoria" && l.achados === 0) return false;
     if (aba === "prazos" && l.prazos.length === 0) return false;
     if (aba === "semos" && (l.ordemServico.trim() !== "" || l.encerrado)) return false;
     if (aba === "terceiros" && !l.terceiro) return false;
@@ -209,6 +210,7 @@ function Painel() {
   const ativas = proprias.filter((l) => !l.encerrado).length;
   const semOs = proprias.filter((l) => !l.encerrado && l.ordemServico.trim() === "").length;
   const prazosCriticos = proprias.filter((l) => l.prazos.some((p) => (p.dias ?? 99) <= 5)).length;
+  const comAuditoria = proprias.filter((l) => l.achados > 0).length;
 
   function exportarCsv() {
     if (ordenadas.length === 0) {
@@ -292,17 +294,22 @@ function Painel() {
       </div>
 
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Indicador rotulo="Em acompanhamento ativo (exclui terceiros)" valor={ativas} />
         <Indicador rotulo="Sem O.S. vinculada" valor={semOs} tom="warning" />
         <Indicador rotulo="Prazos vencendo (até 5 dias)" valor={prazosCriticos} tom="destructive" />
         <Indicador rotulo="Alertas em aberto" valor={totalAlertas} tom="warning" />
+        <Indicador
+          rotulo={`Empresas com pendência na auditoria (${totalAchados} achados)`}
+          valor={comAuditoria}
+          tom="destructive"
+        />
       </div>
 
       <Card className="overflow-hidden p-0 shadow-panel">
         <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
           <div className="flex overflow-hidden rounded-md border border-border">
-            {(["ativas", "prazos", "semos", "alertas", "encerradas", "terceiros"] as const).map((k) => (
+            {(["ativas", "prazos", "semos", "auditoria", "alertas", "encerradas", "terceiros"] as const).map((k) => (
               <button
                 key={k}
                 onClick={() => setAba(k)}
@@ -312,6 +319,8 @@ function Painel() {
               >
                 {k === "alertas"
                   ? "Com alerta"
+                  : k === "auditoria"
+                    ? "Pendência auditoria"
                   : k === "prazos"
                     ? "Com prazo"
                     : k === "semos"
@@ -378,7 +387,14 @@ function Painel() {
                 </tr>
               )}
               {ordenadas.map((l) => (
-                <tr key={l.id} className="border-t border-border align-top hover:bg-surface/70">
+                <tr
+                  key={l.id}
+                  className={`border-t border-border align-top hover:bg-surface/70 ${
+                    l.achados > 0 && !l.terceiro
+                      ? "border-l-4 border-l-destructive bg-destructive/[0.04]"
+                      : ""
+                  }`}
+                >
                   <td className="px-4 py-3">
                     <Link
                       to="/declaracoes/$id"
@@ -403,6 +419,11 @@ function Painel() {
                   <td className="numero px-4 py-3 text-xs">{documento(l.cnpj)}</td>
                   <td className="max-w-64 px-4 py-3">
                     <p className="truncate font-medium">{l.razao_social ?? l.nome ?? "—"}</p>
+                    {l.achados > 0 && !l.terceiro && (
+                      <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+                        <AlertTriangle className="size-3" /> Pendência na auditoria ({l.achados})
+                      </span>
+                    )}
                     {l.terceiro && (
                       <p className="truncate text-xs text-muted-foreground">
                         PERDCOMP de terceiro — fora do acompanhamento
