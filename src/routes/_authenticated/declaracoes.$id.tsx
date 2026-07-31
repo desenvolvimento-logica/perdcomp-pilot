@@ -44,8 +44,11 @@ type Controle = {
   aviso_pagamento: boolean;
   aviso_pagamento_data: string | null;
   aviso_pagamento_prazo: string | null;
+  pagamento_confirmado: boolean;
+  pagamento_confirmado_em: string | null;
   compensacao_oficio: boolean;
   compensacao_oficio_prazo: string | null;
+  compensacao_oficio_opcao: "" | "compensacao" | "recusa";
   intimacao: boolean;
   intimacao_prazo: string | null;
   encerrado: boolean;
@@ -59,14 +62,18 @@ const vazio: Controle = {
   aviso_pagamento: false,
   aviso_pagamento_data: null,
   aviso_pagamento_prazo: null,
+  pagamento_confirmado: false,
+  pagamento_confirmado_em: null,
   compensacao_oficio: false,
   compensacao_oficio_prazo: null,
+  compensacao_oficio_opcao: "",
   intimacao: false,
   intimacao_prazo: null,
   encerrado: false,
   encerrado_em: null,
   observacao: "",
 };
+
 
 function Detalhe() {
   const { id } = Route.useParams();
