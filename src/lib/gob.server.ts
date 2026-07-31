@@ -122,122 +122,153 @@ export type ResultadoSync = {
   achados: number;
 };
 
-export async function sincronizarComGob(maxSize = 200): Promise<ResultadoSync> {
+export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const registros = await fetchPerdcomps(maxSize);
+  const registros = await fetchPerdcomps(limite);
 
   const resultado: ResultadoSync = { total: registros.length, novas: 0, atualizadas: 0, alertas: 0, achados: 0 };
   const agora = new Date().toISOString();
 
-  for (const r of registros) {
-    const gobId = str(r["id"]);
-    if (!gobId) continue;
+  // Estado atual do banco, em poucas consultas (evita 1 ida ao banco por registro).
+  const { data: atuais } = await supabaseAdmin.from("declaracoes").select("id, gob_id, situacao");
+  const porGobId = new Map((atuais ?? []).map((d) => [d.gob_id, d]));
 
-    const credito = num(r["valorTotalCredito"]);
-    const utilizado = num(r["valorUtilizadoPerdcomp"]);
-    const situacao = str(r["situacao"]);
+  const payloads = registros
+    .map((r) => {
+      const gobId = str(r["id"]);
+      if (!gobId) return null;
+      const credito = num(r["valorTotalCredito"]);
+      const utilizado = num(r["valorUtilizadoPerdcomp"]);
+      return {
+        registro: r,
+        payload: {
+          gob_id: gobId,
+          numero_perdcomp: str(r["numeroPerdcomp"]),
+          cnpj: str(r["cnpj"]) ?? str(r["detentorCredito"]),
+          nome: str(r["name"]),
+          tipo_documento: str(r["tipoDocumento"]),
+          tipo_credito: str(r["tipoCredito"]),
+          situacao: str(r["situacao"]),
+          ajuda_situacao: str(r["ajudaSituacao"]),
+          periodo_apuracao: str(r["periodoApuracao"]),
+          data_transmissao: toIso(r["dataTransmissao"]),
+          ultimo_registro: r["ultimoRegistro"] === true,
+          valor_total_credito: credito,
+          valor_utilizado: utilizado,
+          saldo_restante:
+            credito !== null && utilizado !== null ? Number((credito - utilizado).toFixed(2)) : null,
+          dados: r as never,
+          ultima_sincronizacao: agora,
+          updated_at: agora,
+        },
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
 
-    const { data: existente } = await supabaseAdmin
+  // Grava tudo em blocos, usando gob_id como chave natural.
+  const bloco = 300;
+  for (let i = 0; i < payloads.length; i += bloco) {
+    const { error } = await supabaseAdmin
       .from("declaracoes")
-      .select("id, situacao")
-      .eq("gob_id", gobId)
-      .maybeSingle();
+      .upsert(
+        payloads.slice(i, i + bloco).map((p) => p.payload),
+        { onConflict: "gob_id" },
+      );
+    if (error) throw new Error(`Falha ao gravar declarações: ${error.message}`);
+  }
 
-    const payload = {
-      gob_id: gobId,
-      numero_perdcomp: str(r["numeroPerdcomp"]),
-      cnpj: str(r["cnpj"]) ?? str(r["detentorCredito"]),
-      nome: str(r["name"]),
-      tipo_documento: str(r["tipoDocumento"]),
-      tipo_credito: str(r["tipoCredito"]),
-      situacao,
-      ajuda_situacao: str(r["ajudaSituacao"]),
-      periodo_apuracao: str(r["periodoApuracao"]),
-      data_transmissao: toIso(r["dataTransmissao"]),
-      ultimo_registro: r["ultimoRegistro"] === true,
-      valor_total_credito: credito,
-      valor_utilizado: utilizado,
-      saldo_restante: credito !== null && utilizado !== null ? Number((credito - utilizado).toFixed(2)) : null,
-      dados: r as never,
-      ultima_sincronizacao: agora,
-      updated_at: agora,
-    };
+  const { data: depois } = await supabaseAdmin.from("declaracoes").select("id, gob_id");
+  const idPorGobId = new Map((depois ?? []).map((d) => [d.gob_id, d.id]));
 
-    let declaracaoId: string;
+  const novosAcompanhamentos: Array<{ declaracao_id: string }> = [];
+  const novoHistorico: Array<{ declaracao_id: string; situacao_anterior: string | null; situacao_nova: string }> = [];
+  const novosAlertas: Array<{
+    declaracao_id: string;
+    tipo: string;
+    prioridade: string;
+    mensagem: string;
+  }> = [];
+  const novosAchados: Array<{
+    declaracao_id: string;
+    codigo: string;
+    descricao: string;
+    severidade: string;
+  }> = [];
 
-    if (!existente) {
-      const { data: inserida, error } = await supabaseAdmin
-        .from("declaracoes")
-        .insert(payload)
-        .select("id")
-        .single();
-      if (error || !inserida) continue;
-      declaracaoId = inserida.id;
+  const ids = payloads
+    .map((p) => idPorGobId.get(p.payload.gob_id))
+    .filter((v): v is string => typeof v === "string");
+
+  const achadosExistentes = new Set<string>();
+  const alertasAbertos = new Set<string>();
+  for (let i = 0; i < ids.length; i += 500) {
+    const fatia = ids.slice(i, i + 500);
+    const { data: ach } = await supabaseAdmin
+      .from("auditoria_achados")
+      .select("declaracao_id, codigo")
+      .in("declaracao_id", fatia);
+    for (const a of ach ?? []) achadosExistentes.add(`${a.declaracao_id}|${a.codigo}`);
+    const { data: alt } = await supabaseAdmin
+      .from("alertas")
+      .select("declaracao_id, tipo")
+      .eq("resolvido", false)
+      .in("declaracao_id", fatia);
+    for (const a of alt ?? []) alertasAbertos.add(`${a.declaracao_id}|${a.tipo}`);
+  }
+
+  for (const { registro: r, payload } of payloads) {
+    const declaracaoId = idPorGobId.get(payload.gob_id);
+    if (!declaracaoId) continue;
+    const anterior = porGobId.get(payload.gob_id);
+    const situacao = payload.situacao;
+
+    if (!anterior) {
       resultado.novas += 1;
-      await supabaseAdmin.from("acompanhamentos").insert({ declaracao_id: declaracaoId });
+      novosAcompanhamentos.push({ declaracao_id: declaracaoId });
       if (situacao) {
-        await supabaseAdmin
-          .from("status_historico")
-          .insert({ declaracao_id: declaracaoId, situacao_anterior: null, situacao_nova: situacao });
+        novoHistorico.push({ declaracao_id: declaracaoId, situacao_anterior: null, situacao_nova: situacao });
       }
-    } else {
-      declaracaoId = existente.id;
-      await supabaseAdmin.from("declaracoes").update(payload).eq("id", declaracaoId);
-      if (situacao && situacao !== existente.situacao) {
-        resultado.atualizadas += 1;
-        await supabaseAdmin.from("status_historico").insert({
+    } else if (situacao && situacao !== anterior.situacao) {
+      resultado.atualizadas += 1;
+      novoHistorico.push({
+        declaracao_id: declaracaoId,
+        situacao_anterior: anterior.situacao,
+        situacao_nova: situacao,
+      });
+      const s = (anterior.situacao ?? "").toLowerCase();
+      if (s.includes("análise") || s.includes("analise")) {
+        novosAlertas.push({
           declaracao_id: declaracaoId,
-          situacao_anterior: existente.situacao,
-          situacao_nova: situacao,
-        });
-        const saiuDeAnalise = (existente.situacao ?? "").toLowerCase().includes("análise") ||
-          (existente.situacao ?? "").toLowerCase().includes("analise");
-        if (saiuDeAnalise) {
-          await supabaseAdmin.from("alertas").insert({
-            declaracao_id: declaracaoId,
-            tipo: "mudanca_status",
-            prioridade: "alta",
-            mensagem: `Situação alterada de "${existente.situacao}" para "${situacao}".`,
-          });
-          resultado.alertas += 1;
-        }
-      }
-    }
-
-    if (ehPendencia(situacao)) {
-      const { data: jaTem } = await supabaseAdmin
-        .from("alertas")
-        .select("id")
-        .eq("declaracao_id", declaracaoId)
-        .eq("tipo", "pendencia")
-        .eq("resolvido", false)
-        .maybeSingle();
-      if (!jaTem) {
-        await supabaseAdmin.from("alertas").insert({
-          declaracao_id: declaracaoId,
-          tipo: "pendencia",
+          tipo: "mudanca_status",
           prioridade: "alta",
-          mensagem: `GOB sinalizou "${situacao}" — tratar como pendência de alta prioridade.`,
+          mensagem: `Situação alterada de "${anterior.situacao}" para "${situacao}".`,
         });
         resultado.alertas += 1;
       }
     }
 
+    if (ehPendencia(situacao) && !alertasAbertos.has(`${declaracaoId}|pendencia`)) {
+      alertasAbertos.add(`${declaracaoId}|pendencia`);
+      novosAlertas.push({
+        declaracao_id: declaracaoId,
+        tipo: "pendencia",
+        prioridade: "alta",
+        mensagem: `GOB sinalizou "${situacao}" — tratar como pendência de alta prioridade.`,
+      });
+      resultado.alertas += 1;
+    }
+
     for (const achado of auditar(r)) {
-      const { data: existenteAchado } = await supabaseAdmin
-        .from("auditoria_achados")
-        .select("id")
-        .eq("declaracao_id", declaracaoId)
-        .eq("codigo", achado.codigo)
-        .maybeSingle();
-      if (existenteAchado) continue;
-      await supabaseAdmin.from("auditoria_achados").insert({
+      const chave = `${declaracaoId}|${achado.codigo}`;
+      if (achadosExistentes.has(chave)) continue;
+      achadosExistentes.add(chave);
+      novosAchados.push({
         declaracao_id: declaracaoId,
         codigo: achado.codigo,
         descricao: achado.descricao,
         severidade: achado.severidade,
       });
-      await supabaseAdmin.from("alertas").insert({
+      novosAlertas.push({
         declaracao_id: declaracaoId,
         tipo: "auditoria",
         prioridade: achado.severidade === "critico" ? "alta" : "normal",
@@ -248,8 +279,21 @@ export async function sincronizarComGob(maxSize = 200): Promise<ResultadoSync> {
     }
   }
 
+  async function inserirEmBloco(tabela: "acompanhamentos" | "status_historico" | "alertas" | "auditoria_achados", linhas: unknown[]) {
+    for (let i = 0; i < linhas.length; i += bloco) {
+      const { error } = await supabaseAdmin.from(tabela).insert(linhas.slice(i, i + bloco) as never);
+      if (error) throw new Error(`Falha ao gravar ${tabela}: ${error.message}`);
+    }
+  }
+
+  await inserirEmBloco("acompanhamentos", novosAcompanhamentos);
+  await inserirEmBloco("status_historico", novoHistorico);
+  await inserirEmBloco("auditoria_achados", novosAchados);
+  await inserirEmBloco("alertas", novosAlertas);
+
   return resultado;
 }
+
 
 export async function gerarAlertasDePrazo(): Promise<number> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
