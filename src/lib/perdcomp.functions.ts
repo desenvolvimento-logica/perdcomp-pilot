@@ -115,7 +115,8 @@ export const salvarAcompanhamento = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     const campos: Array<[string, string]> = [
-      ["responsavel_id", "Responsável"],
+      ["ordem_servico", "Ordem de serviço"],
+      ["terceiro", "PERDCOMP de terceiro"],
       ["aviso_pagamento", "Aviso de pagamento"],
       ["aviso_pagamento_data", "Data do aviso de pagamento"],
     ["aviso_pagamento_prazo", "Prazo de atendimento do aviso de pagamento"],
