@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           aviso_pagamento: boolean
           aviso_pagamento_data: string | null
+          aviso_pagamento_prazo: string | null
           compensacao_oficio: boolean
           compensacao_oficio_prazo: string | null
           declaracao_id: string
@@ -32,6 +33,7 @@ export type Database = {
         Insert: {
           aviso_pagamento?: boolean
           aviso_pagamento_data?: string | null
+          aviso_pagamento_prazo?: string | null
           compensacao_oficio?: boolean
           compensacao_oficio_prazo?: string | null
           declaracao_id: string
@@ -46,6 +48,7 @@ export type Database = {
         Update: {
           aviso_pagamento?: boolean
           aviso_pagamento_data?: string | null
+          aviso_pagamento_prazo?: string | null
           compensacao_oficio?: boolean
           compensacao_oficio_prazo?: string | null
           declaracao_id?: string
@@ -159,18 +162,27 @@ export type Database = {
         Row: {
           ajuda_situacao: string | null
           cnpj: string | null
+          codigo_receita: string | null
+          credito_atualizado: number | null
           dados: Json
           data_transmissao: string | null
           gob_id: string
+          grupo_tributo: string | null
           id: string
           nome: string | null
           numero_perdcomp: string | null
           periodo_apuracao: string | null
           primeira_sincronizacao: string
+          processo_administrativo: string | null
+          processo_habilitacao: string | null
+          processo_judicial: string | null
+          razao_social: string | null
+          saldo_credito_original: number | null
           saldo_restante: number | null
           situacao: string | null
           tipo_credito: string | null
           tipo_documento: string | null
+          total_debitos: number | null
           ultima_sincronizacao: string
           ultimo_registro: boolean
           updated_at: string
@@ -180,18 +192,27 @@ export type Database = {
         Insert: {
           ajuda_situacao?: string | null
           cnpj?: string | null
+          codigo_receita?: string | null
+          credito_atualizado?: number | null
           dados?: Json
           data_transmissao?: string | null
           gob_id: string
+          grupo_tributo?: string | null
           id?: string
           nome?: string | null
           numero_perdcomp?: string | null
           periodo_apuracao?: string | null
           primeira_sincronizacao?: string
+          processo_administrativo?: string | null
+          processo_habilitacao?: string | null
+          processo_judicial?: string | null
+          razao_social?: string | null
+          saldo_credito_original?: number | null
           saldo_restante?: number | null
           situacao?: string | null
           tipo_credito?: string | null
           tipo_documento?: string | null
+          total_debitos?: number | null
           ultima_sincronizacao?: string
           ultimo_registro?: boolean
           updated_at?: string
@@ -201,18 +222,27 @@ export type Database = {
         Update: {
           ajuda_situacao?: string | null
           cnpj?: string | null
+          codigo_receita?: string | null
+          credito_atualizado?: number | null
           dados?: Json
           data_transmissao?: string | null
           gob_id?: string
+          grupo_tributo?: string | null
           id?: string
           nome?: string | null
           numero_perdcomp?: string | null
           periodo_apuracao?: string | null
           primeira_sincronizacao?: string
+          processo_administrativo?: string | null
+          processo_habilitacao?: string | null
+          processo_judicial?: string | null
+          razao_social?: string | null
+          saldo_credito_original?: number | null
           saldo_restante?: number | null
           situacao?: string | null
           tipo_credito?: string | null
           tipo_documento?: string | null
+          total_debitos?: number | null
           ultima_sincronizacao?: string
           ultimo_registro?: boolean
           updated_at?: string
