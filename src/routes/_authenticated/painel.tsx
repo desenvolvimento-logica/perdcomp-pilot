@@ -220,16 +220,16 @@ function Painel() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Indicador rotulo="Em acompanhamento ativo" valor={ativas} />
+        <Indicador rotulo="Em acompanhamento ativo (exclui terceiros)" valor={ativas} />
+        <Indicador rotulo="Sem O.S. vinculada" valor={semOs} tom="warning" />
         <Indicador rotulo="Prazos vencendo (até 5 dias)" valor={prazosCriticos} tom="destructive" />
         <Indicador rotulo="Alertas em aberto" valor={totalAlertas} tom="warning" />
-        <Indicador rotulo="Apontamentos de auditoria" valor={totalAchados} tom="destructive" />
       </div>
 
       <Card className="overflow-hidden p-0 shadow-panel">
         <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
           <div className="flex overflow-hidden rounded-md border border-border">
-            {(["ativas", "prazos", "alertas", "encerradas"] as const).map((k) => (
+            {(["ativas", "prazos", "semos", "alertas", "encerradas", "terceiros"] as const).map((k) => (
               <button
                 key={k}
                 onClick={() => setAba(k)}
@@ -237,7 +237,14 @@ function Painel() {
                   aba === k ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-muted"
                 }`}
               >
-                {k === "alertas" ? "Com alerta" : k === "prazos" ? "Com prazo" : k}
+                {k === "alertas"
+                  ? "Com alerta"
+                  : k === "prazos"
+                    ? "Com prazo"
+                    : k === "semos"
+                      ? "Sem O.S."
+                      : k}
+
               </button>
             ))}
           </div>
