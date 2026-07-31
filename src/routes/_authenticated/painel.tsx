@@ -378,7 +378,14 @@ function Painel() {
                 </tr>
               )}
               {ordenadas.map((l) => (
-                <tr key={l.id} className="border-t border-border align-top hover:bg-surface/70">
+                <tr
+                  key={l.id}
+                  className={`border-t border-border align-top hover:bg-surface/70 ${
+                    l.achados > 0 && !l.terceiro
+                      ? "border-l-4 border-l-destructive bg-destructive/[0.04]"
+                      : ""
+                  }`}
+                >
                   <td className="px-4 py-3">
                     <Link
                       to="/declaracoes/$id"
