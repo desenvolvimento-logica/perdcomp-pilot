@@ -122,7 +122,7 @@ function Painel() {
   const salvarFn = useServerFn(salvarAcompanhamento);
   const [busca, setBusca] = useState("");
   const [situacao, setSituacao] = useState("todas");
-  const [aba, setAba] = useState<"ativas" | "prazos" | "semos" | "alertas" | "encerradas" | "terceiros">("ativas");
+  const [aba, setAba] = useState<"ativas" | "prazos" | "semos" | "auditoria" | "alertas" | "encerradas" | "terceiros">("ativas");
   const [editando, setEditando] = useState<{ id: string; titulo: string; form: Acomp } | null>(null);
 
   const { data, isPending } = useQuery({ queryKey: ["declaracoes"], queryFn: () => listar() });
@@ -210,6 +210,7 @@ function Painel() {
   const ativas = proprias.filter((l) => !l.encerrado).length;
   const semOs = proprias.filter((l) => !l.encerrado && l.ordemServico.trim() === "").length;
   const prazosCriticos = proprias.filter((l) => l.prazos.some((p) => (p.dias ?? 99) <= 5)).length;
+  const comAuditoria = proprias.filter((l) => l.achados > 0).length;
 
   function exportarCsv() {
     if (ordenadas.length === 0) {
@@ -293,17 +294,22 @@ function Painel() {
       </div>
 
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Indicador rotulo="Em acompanhamento ativo (exclui terceiros)" valor={ativas} />
         <Indicador rotulo="Sem O.S. vinculada" valor={semOs} tom="warning" />
         <Indicador rotulo="Prazos vencendo (até 5 dias)" valor={prazosCriticos} tom="destructive" />
         <Indicador rotulo="Alertas em aberto" valor={totalAlertas} tom="warning" />
+        <Indicador
+          rotulo={`Empresas com pendência na auditoria (${totalAchados} achados)`}
+          valor={comAuditoria}
+          tom="destructive"
+        />
       </div>
 
       <Card className="overflow-hidden p-0 shadow-panel">
         <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
           <div className="flex overflow-hidden rounded-md border border-border">
-            {(["ativas", "prazos", "semos", "alertas", "encerradas", "terceiros"] as const).map((k) => (
+            {(["ativas", "prazos", "semos", "auditoria", "alertas", "encerradas", "terceiros"] as const).map((k) => (
               <button
                 key={k}
                 onClick={() => setAba(k)}
@@ -313,6 +319,8 @@ function Painel() {
               >
                 {k === "alertas"
                   ? "Com alerta"
+                  : k === "auditoria"
+                    ? "Pendência auditoria"
                   : k === "prazos"
                     ? "Com prazo"
                     : k === "semos"
