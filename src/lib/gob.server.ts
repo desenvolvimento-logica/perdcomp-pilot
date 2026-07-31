@@ -108,12 +108,6 @@ export function auditar(r: GobPerdcomp): Achado[] {
   return achados;
 }
 
-function ehPendencia(situacao: string | null): boolean {
-  if (!situacao) return false;
-  const s = situacao.toLowerCase();
-  return s.includes("pendênc") || s.includes("pendenc") || s.includes("diligênc") || s.includes("diligenc");
-}
-
 export type ResultadoSync = {
   total: number;
   novas: number;
