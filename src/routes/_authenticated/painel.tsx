@@ -292,14 +292,14 @@ function Painel() {
             <tbody>
               {isPending && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={11} className="px-4 py-12 text-center text-muted-foreground">
                     Carregando declarações…
                   </td>
                 </tr>
               )}
               {!isPending && ordenadas.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={11} className="px-4 py-12 text-center text-muted-foreground">
                     Nenhuma declaração aqui. Use “Sincronizar com o GOB” para trazer os dados.
                   </td>
                 </tr>
