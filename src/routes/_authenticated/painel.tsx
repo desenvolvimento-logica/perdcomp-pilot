@@ -50,7 +50,8 @@ export const Route = createFileRoute("/_authenticated/painel")({
 
 type Acomp = {
   declaracao_id: string;
-  responsavel_id: string | null;
+  ordem_servico: string;
+  terceiro: boolean;
   aviso_pagamento: boolean;
   aviso_pagamento_data: string | null;
   aviso_pagamento_prazo: string | null;
@@ -65,7 +66,8 @@ type Acomp = {
 
 const ACOMP_VAZIO = (id: string): Acomp => ({
   declaracao_id: id,
-  responsavel_id: null,
+  ordem_servico: "",
+  terceiro: false,
   aviso_pagamento: false,
   aviso_pagamento_data: null,
   aviso_pagamento_prazo: null,
