@@ -336,7 +336,7 @@ function Painel() {
                       </p>
                     )}
                   </td>
-
+                  <td className="max-w-56 px-4 py-3">
                     <p className="truncate">
                       {l.grupo_tributo ?? l.tipo_credito ?? "—"}
                       {l.codigo_receita ? ` · ${l.codigo_receita}` : ""}
