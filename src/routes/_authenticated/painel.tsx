@@ -410,6 +410,11 @@ function Painel() {
                   <td className="numero px-4 py-3 text-xs">{documento(l.cnpj)}</td>
                   <td className="max-w-64 px-4 py-3">
                     <p className="truncate font-medium">{l.razao_social ?? l.nome ?? "—"}</p>
+                    {l.achados > 0 && !l.terceiro && (
+                      <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+                        <AlertTriangle className="size-3" /> Pendência na auditoria ({l.achados})
+                      </span>
+                    )}
                     {l.terceiro && (
                       <p className="truncate text-xs text-muted-foreground">
                         PERDCOMP de terceiro — fora do acompanhamento
