@@ -185,6 +185,7 @@ function Painel() {
     if (aba === "ativas" && l.encerrado) return false;
     if (aba === "encerradas" && !l.encerrado) return false;
     if (aba === "alertas" && l.alertas === 0) return false;
+    if (aba === "auditoria" && l.achados === 0) return false;
     if (aba === "prazos" && l.prazos.length === 0) return false;
     if (aba === "semos" && (l.ordemServico.trim() !== "" || l.encerrado)) return false;
     if (aba === "terceiros" && !l.terceiro) return false;
