@@ -22,7 +22,7 @@ export const listarDeclaracoes = createServerFn({ method: "GET" })
           "id, numero_perdcomp, cnpj, nome, razao_social, tipo_documento, tipo_credito, grupo_tributo, codigo_receita, situacao, ajuda_situacao, periodo_apuracao, data_transmissao, ultimo_registro, valor_total_credito, valor_utilizado, saldo_restante, credito_atualizado, total_debitos, processo_administrativo, processo_judicial, ultima_sincronizacao",
         )
         .order("data_transmissao", { ascending: false, nullsFirst: false })
-        .limit(500),
+        .limit(3000),
       supabase.from("acompanhamentos").select("*"),
       supabase.from("auditoria_achados").select("declaracao_id, revisado"),
       supabase.from("alertas").select("id, declaracao_id, tipo, prioridade, mensagem, resolvido, criado_em"),
