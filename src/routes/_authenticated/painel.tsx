@@ -454,11 +454,31 @@ function DialogPrazos({
     <Dialog open={estado !== null} onOpenChange={(o) => !o && onFechar()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Prazos de atendimento</DialogTitle>
+          <DialogTitle>O.S. e prazos de atendimento</DialogTitle>
           <DialogDescription className="truncate">{estado?.titulo}</DialogDescription>
         </DialogHeader>
         {form && (
           <div className="space-y-3">
+            <div className="space-y-1.5 rounded-md border border-border p-3">
+              <Label className="text-xs text-muted-foreground">Número da ordem de serviço</Label>
+              <Input
+                value={form.ordem_servico}
+                onChange={(e) => setForm({ ...form, ordem_servico: e.target.value })}
+                placeholder="Ex.: OS-2026-0147"
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
+              <div>
+                <span className="text-sm font-medium">PERDCOMP de terceiro</span>
+                <p className="text-xs text-muted-foreground">
+                  Não é nossa responsabilidade; sai do total em acompanhamento.
+                </p>
+              </div>
+              <Switch
+                checked={form.terceiro}
+                onCheckedChange={(v) => setForm({ ...form, terceiro: v })}
+              />
+            </div>
             <LinhaPrazo
               titulo="Aviso de pagamento"
               ativo={form.aviso_pagamento}
