@@ -124,6 +124,8 @@ function Painel() {
   const [situacao, setSituacao] = useState("todas");
   const [aba, setAba] = useState<"ativas" | "prazos" | "semos" | "auditoria" | "alertas" | "encerradas" | "terceiros">("ativas");
   const [editando, setEditando] = useState<{ id: string; titulo: string; form: Acomp } | null>(null);
+  const [pagina, setPagina] = useState(1);
+  const porPagina = 20;
 
   const { data, isPending } = useQuery({ queryKey: ["declaracoes"], queryFn: () => listar() });
 
@@ -175,6 +177,10 @@ function Painel() {
     });
   }, [data]);
 
+  useEffect(() => {
+    setPagina(1);
+  }, [aba, busca, situacao]);
+
   const situacoes = useMemo(
     () => Array.from(new Set(linhas.map((l) => l.situacao).filter(Boolean))) as string[],
     [linhas],
@@ -203,6 +209,11 @@ function Painel() {
     aba === "prazos"
       ? [...filtradas].sort((a, b) => (a.prazos[0]?.dias ?? 9999) - (b.prazos[0]?.dias ?? 9999))
       : filtradas;
+
+  const totalPaginas = Math.max(1, Math.ceil(ordenadas.length / porPagina));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const pagina_inicio = (paginaAtual - 1) * porPagina;
+  const visiveis = ordenadas.slice(pagina_inicio, pagina_inicio + porPagina);
 
   const proprias = linhas.filter((l) => !l.terceiro);
   const totalAlertas = proprias.reduce((s, l) => s + l.alertas, 0);
@@ -296,14 +307,14 @@ function Painel() {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Indicador rotulo="Em acompanhamento ativo (exclui terceiros)" valor={ativas} />
-        <Indicador rotulo="Sem O.S. vinculada" valor={semOs} tom="warning" />
-        <Indicador rotulo="Prazos vencendo (até 5 dias)" valor={prazosCriticos} tom="destructive" />
-        <Indicador rotulo="Alertas em aberto" valor={totalAlertas} tom="warning" />
         <Indicador
-          rotulo={`Empresas com pendência na auditoria (${totalAchados} achados)`}
+          rotulo={`Pendência na auditoria (${totalAchados} achados)`}
           valor={comAuditoria}
           tom="destructive"
         />
+        <Indicador rotulo="Sem O.S. vinculada" valor={semOs} tom="warning" />
+        <Indicador rotulo="Prazos vencendo (até 5 dias)" valor={prazosCriticos} tom="destructive" />
+        <Indicador rotulo="Alertas em aberto" valor={totalAlertas} tom="warning" />
       </div>
 
       <Card className="overflow-hidden p-0 shadow-panel">
@@ -379,14 +390,14 @@ function Painel() {
                   </td>
                 </tr>
               )}
-              {!isPending && ordenadas.length === 0 && (
+              {!isPending && visiveis.length === 0 && (
                 <tr>
                   <td colSpan={11} className="px-4 py-12 text-center text-muted-foreground">
                     Nenhuma declaração aqui. Use “Sincronizar com o GOB” para trazer os dados.
                   </td>
                 </tr>
               )}
-              {ordenadas.map((l) => (
+              {visiveis.map((l) => (
                 <tr
                   key={l.id}
                   className={`border-t border-border align-top hover:bg-surface/70 ${
@@ -517,6 +528,34 @@ function Painel() {
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-4 text-sm">
+          <span className="text-muted-foreground">
+            {ordenadas.length === 0
+              ? "Nenhuma declaração"
+              : `Mostrando ${pagina_inicio + 1}–${Math.min(pagina_inicio + porPagina, ordenadas.length)} de ${ordenadas.length}`}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPagina((p) => Math.max(1, p - 1))}
+              disabled={paginaAtual <= 1}
+            >
+              Anterior
+            </Button>
+            <span className="numero text-xs text-muted-foreground">
+              Página {paginaAtual} de {totalPaginas}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+              disabled={paginaAtual >= totalPaginas}
+            >
+              Próxima
+            </Button>
+          </div>
         </div>
       </Card>
 
