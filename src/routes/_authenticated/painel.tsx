@@ -595,12 +595,14 @@ function LinhaPrazo({
   onAtivo,
   prazo,
   onPrazo,
+  children,
 }: {
   titulo: string;
   ativo: boolean;
   onAtivo: (v: boolean) => void;
   prazo: string | null;
   onPrazo: (v: string | null) => void;
+  children?: ReactNode;
 }) {
   const d = ativo ? dias(prazo) : null;
   return (
@@ -618,8 +620,10 @@ function LinhaPrazo({
               {d < 0 ? `Vencido há ${Math.abs(d)} dia(s)` : `Faltam ${d} dia(s)`}
             </p>
           )}
+          {children}
         </div>
       )}
+
     </div>
   );
 }
