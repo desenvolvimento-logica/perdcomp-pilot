@@ -279,16 +279,28 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
     }
   }
 
-  async function inserirEmBloco(tabela: "acompanhamentos" | "status_historico" | "alertas" | "auditoria_achados", linhas: unknown[]) {
+  async function inserirEmBloco(
+    tabela: "acompanhamentos" | "status_historico" | "alertas" | "auditoria_achados",
+    linhas: unknown[],
+    onConflict?: string,
+  ) {
     for (let i = 0; i < linhas.length; i += bloco) {
-      const { error } = await supabaseAdmin.from(tabela).insert(linhas.slice(i, i + bloco) as never);
+      const fatia = linhas.slice(i, i + bloco) as never;
+      const { error } = onConflict
+        ? await supabaseAdmin.from(tabela).upsert(fatia, { onConflict, ignoreDuplicates: true })
+        : await supabaseAdmin.from(tabela).insert(fatia);
       if (error) throw new Error(`Falha ao gravar ${tabela}: ${error.message}`);
     }
   }
 
-  await inserirEmBloco("acompanhamentos", novosAcompanhamentos);
+  // Deduplica dentro do próprio lote antes de gravar (a mesma chave pode repetir).
+  const achadosUnicos = Array.from(
+    new Map(novosAchados.map((a) => [`${a.declaracao_id}|${a.codigo}`, a])).values(),
+  );
+
+  await inserirEmBloco("acompanhamentos", novosAcompanhamentos, "declaracao_id");
   await inserirEmBloco("status_historico", novoHistorico);
-  await inserirEmBloco("auditoria_achados", novosAchados);
+  await inserirEmBloco("auditoria_achados", achadosUnicos, "declaracao_id,codigo");
   await inserirEmBloco("alertas", novosAlertas);
 
   return resultado;
