@@ -316,17 +316,26 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
 }
 
 
+function rotuloPrazo(tipo: string): string {
+  if (tipo === "intimacao") return "atendimento da intimação";
+  if (tipo === "aviso_pagamento") return "atendimento do aviso de pagamento";
+  return "compensação de ofício";
+}
+
 export async function gerarAlertasDePrazo(): Promise<number> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: acomps } = await supabaseAdmin
     .from("acompanhamentos")
-    .select("declaracao_id, compensacao_oficio, compensacao_oficio_prazo, intimacao, intimacao_prazo, encerrado")
+    .select(
+      "declaracao_id, aviso_pagamento, aviso_pagamento_prazo, compensacao_oficio, compensacao_oficio_prazo, intimacao, intimacao_prazo, encerrado",
+    )
     .eq("encerrado", false);
 
   let criados = 0;
   const hoje = new Date();
   for (const a of acomps ?? []) {
     const prazos: Array<[string, string | null, boolean]> = [
+      ["aviso_pagamento", a.aviso_pagamento_prazo, a.aviso_pagamento],
       ["compensacao_oficio", a.compensacao_oficio_prazo, a.compensacao_oficio],
       ["intimacao", a.intimacao_prazo, a.intimacao],
     ];
