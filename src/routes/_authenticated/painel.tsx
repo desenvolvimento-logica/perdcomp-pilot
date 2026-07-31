@@ -152,7 +152,6 @@ function Painel() {
     for (const a of data.alertas) {
       if (!a.resolvido) alertasAbertos.set(a.declaracao_id, (alertasAbertos.get(a.declaracao_id) ?? 0) + 1);
     }
-    const perfilPorId = new Map(data.perfis.map((p) => [p.id, p.nome]));
 
     return data.declaracoes.map((d) => {
       const acomp = acompPorId.get(d.id);
@@ -160,7 +159,8 @@ function Painel() {
         ...d,
         acomp,
         encerrado: acomp?.encerrado ?? false,
-        responsavel: acomp?.responsavel_id ? (perfilPorId.get(acomp.responsavel_id) ?? "—") : "—",
+        terceiro: acomp?.terceiro ?? false,
+        ordemServico: acomp?.ordem_servico ?? "",
         achados: achadosPend.get(d.id) ?? 0,
         alertas: alertasAbertos.get(d.id) ?? 0,
         prazos: prazosDe(acomp),
@@ -174,15 +174,18 @@ function Painel() {
   );
 
   const filtradas = linhas.filter((l) => {
+    if (aba !== "terceiros" && l.terceiro) return false;
     if (aba === "ativas" && l.encerrado) return false;
     if (aba === "encerradas" && !l.encerrado) return false;
     if (aba === "alertas" && l.alertas === 0) return false;
     if (aba === "prazos" && l.prazos.length === 0) return false;
+    if (aba === "semos" && (l.ordemServico.trim() !== "" || l.encerrado)) return false;
+    if (aba === "terceiros" && !l.terceiro) return false;
     if (situacao !== "todas" && l.situacao !== situacao) return false;
     if (busca) {
       const t = busca.toLowerCase();
       const alvo =
-        `${l.numero_perdcomp ?? ""} ${l.cnpj ?? ""} ${l.razao_social ?? ""} ${l.nome ?? ""}`.toLowerCase();
+        `${l.numero_perdcomp ?? ""} ${l.cnpj ?? ""} ${l.razao_social ?? ""} ${l.nome ?? ""} ${l.ordemServico}`.toLowerCase();
       if (!alvo.includes(t)) return false;
     }
     return true;
@@ -193,10 +196,13 @@ function Painel() {
       ? [...filtradas].sort((a, b) => (a.prazos[0]?.dias ?? 9999) - (b.prazos[0]?.dias ?? 9999))
       : filtradas;
 
-  const totalAlertas = linhas.reduce((s, l) => s + l.alertas, 0);
-  const totalAchados = linhas.reduce((s, l) => s + l.achados, 0);
-  const ativas = linhas.filter((l) => !l.encerrado).length;
-  const prazosCriticos = linhas.filter((l) => l.prazos.some((p) => (p.dias ?? 99) <= 5)).length;
+  const proprias = linhas.filter((l) => !l.terceiro);
+  const totalAlertas = proprias.reduce((s, l) => s + l.alertas, 0);
+  const totalAchados = proprias.reduce((s, l) => s + l.achados, 0);
+  const ativas = proprias.filter((l) => !l.encerrado).length;
+  const semOs = proprias.filter((l) => !l.encerrado && l.ordemServico.trim() === "").length;
+  const prazosCriticos = proprias.filter((l) => l.prazos.some((p) => (p.dias ?? 99) <= 5)).length;
+
 
   return (
     <main className="mx-auto max-w-[1500px] space-y-6 px-4 py-8">
