@@ -40,7 +40,8 @@ export const Route = createFileRoute("/_authenticated/declaracoes/$id")({
 });
 
 type Controle = {
-  responsavel_id: string | null;
+  ordem_servico: string;
+  terceiro: boolean;
   aviso_pagamento: boolean;
   aviso_pagamento_data: string | null;
   aviso_pagamento_prazo: string | null;
@@ -54,7 +55,8 @@ type Controle = {
 };
 
 const vazio: Controle = {
-  responsavel_id: null,
+  ordem_servico: "",
+  terceiro: false,
   aviso_pagamento: false,
   aviso_pagamento_data: null,
   aviso_pagamento_prazo: null,
