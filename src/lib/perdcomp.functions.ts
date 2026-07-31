@@ -80,14 +80,18 @@ const acompanhamentoSchema = z.object({
   aviso_pagamento: z.boolean(),
   aviso_pagamento_data: z.string().nullable(),
   aviso_pagamento_prazo: z.string().nullable(),
+  pagamento_confirmado: z.boolean().default(false),
+  pagamento_confirmado_em: z.string().nullable().default(null),
   compensacao_oficio: z.boolean(),
   compensacao_oficio_prazo: z.string().nullable(),
+  compensacao_oficio_opcao: z.enum(["", "compensacao", "recusa"]).default(""),
   intimacao: z.boolean(),
   intimacao_prazo: z.string().nullable(),
   encerrado: z.boolean(),
   encerrado_em: z.string().nullable(),
   observacao: z.string().max(5000),
 });
+
 
 export const salvarAcompanhamento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -119,29 +123,51 @@ export const salvarAcompanhamento = createServerFn({ method: "POST" })
       ["terceiro", "PERDCOMP de terceiro"],
       ["aviso_pagamento", "Aviso de pagamento"],
       ["aviso_pagamento_data", "Data do aviso de pagamento"],
-    ["aviso_pagamento_prazo", "Prazo de atendimento do aviso de pagamento"],
+      ["aviso_pagamento_prazo", "Prazo de atendimento do aviso de pagamento"],
+      ["pagamento_confirmado", "Pagamento confirmado em conta bancária"],
+      ["pagamento_confirmado_em", "Data da confirmação do pagamento"],
       ["compensacao_oficio", "Compensação de ofício"],
       ["compensacao_oficio_prazo", "Prazo da compensação de ofício"],
+      ["compensacao_oficio_opcao", "Opção na compensação de ofício"],
       ["intimacao", "Intimação — análise preliminar"],
       ["intimacao_prazo", "Prazo de atendimento da intimação"],
       ["encerrado", "Acompanhamento encerrado"],
       ["encerrado_em", "Data de encerramento"],
       ["observacao", "Observação"],
     ];
+
+    // Normaliza para comparar: nulo, vazio e "false" contam como "não preenchido",
+    // evitando registrar no log itens que a equipe nunca marcou.
+    const chave = (v: unknown): string => {
+      if (v === null || v === undefined || v === false || v === "") return "";
+      if (v === true) return "sim";
+      return String(v).trim();
+    };
+    const rotuloValor = (v: unknown): string => {
+      if (v === null || v === undefined || v === "" || v === false) return "—";
+      if (v === true) return "Sim";
+      if (v === "compensacao") return "Compensação";
+      if (v === "recusa") return "Recusa";
+      const s = String(v);
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+      return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
+    };
+
     const linhas = campos
       .filter(([campo]) => {
         const antes = (anterior as Record<string, unknown> | null)?.[campo] ?? null;
         const depois = (data as Record<string, unknown>)[campo] ?? null;
-        return String(antes ?? "") !== String(depois ?? "");
+        return chave(antes) !== chave(depois);
       })
       .map(([campo, rotulo]) => ({
         declaracao_id: data.declaracao_id,
         usuario_id: userId,
         usuario_nome: perfil?.nome ?? "",
         campo: rotulo,
-        valor_anterior: String((anterior as Record<string, unknown> | null)?.[campo] ?? ""),
-        valor_novo: String((data as Record<string, unknown>)[campo] ?? ""),
+        valor_anterior: rotuloValor((anterior as Record<string, unknown> | null)?.[campo] ?? null),
+        valor_novo: rotuloValor((data as Record<string, unknown>)[campo] ?? null),
       }));
+
     if (linhas.length > 0) await supabaseAdmin.from("log_alteracoes").insert(linhas);
 
     return { ok: true, alteracoes: linhas.length };

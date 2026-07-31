@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, AlertTriangle, BellRing, Check, Loader2, History } from "lucide-react";
+import { ArrowLeft, ArrowRight, AlertTriangle, BellRing, Check, Loader2, History } from "lucide-react";
 
 import {
   obterDeclaracao,
@@ -44,8 +44,11 @@ type Controle = {
   aviso_pagamento: boolean;
   aviso_pagamento_data: string | null;
   aviso_pagamento_prazo: string | null;
+  pagamento_confirmado: boolean;
+  pagamento_confirmado_em: string | null;
   compensacao_oficio: boolean;
   compensacao_oficio_prazo: string | null;
+  compensacao_oficio_opcao: "" | "compensacao" | "recusa";
   intimacao: boolean;
   intimacao_prazo: string | null;
   encerrado: boolean;
@@ -59,14 +62,18 @@ const vazio: Controle = {
   aviso_pagamento: false,
   aviso_pagamento_data: null,
   aviso_pagamento_prazo: null,
+  pagamento_confirmado: false,
+  pagamento_confirmado_em: null,
   compensacao_oficio: false,
   compensacao_oficio_prazo: null,
+  compensacao_oficio_opcao: "",
   intimacao: false,
   intimacao_prazo: null,
   encerrado: false,
   encerrado_em: null,
   observacao: "",
 };
+
 
 function Detalhe() {
   const { id } = Route.useParams();
@@ -92,10 +99,14 @@ function Detalhe() {
         aviso_pagamento: a.aviso_pagamento,
         aviso_pagamento_data: a.aviso_pagamento_data,
         aviso_pagamento_prazo: a.aviso_pagamento_prazo,
+        pagamento_confirmado: a.pagamento_confirmado ?? false,
+        pagamento_confirmado_em: a.pagamento_confirmado_em ?? null,
         compensacao_oficio: a.compensacao_oficio,
         compensacao_oficio_prazo: a.compensacao_oficio_prazo,
+        compensacao_oficio_opcao: (a.compensacao_oficio_opcao ?? "") as Controle["compensacao_oficio_opcao"],
         intimacao: a.intimacao,
         intimacao_prazo: a.intimacao_prazo,
+
         encerrado: a.encerrado,
         encerrado_em: a.encerrado_em,
         observacao: a.observacao,
@@ -264,17 +275,37 @@ function Detalhe() {
 
           <Card className="p-5 shadow-panel">
             <h2 className="font-display text-base font-semibold">Log de alterações da equipe</h2>
-            <ul className="mt-4 space-y-2 text-sm">
-              {data.log.map((l) => (
-                <li key={l.id} className="text-muted-foreground">
-                  <strong className="text-foreground">{l.usuario_nome || "Usuário"}</strong> alterou{" "}
-                  <strong className="text-foreground">{l.campo}</strong> em {dataHora(l.criado_em)}
-                  {l.valor_novo ? ` → ${l.valor_novo}` : ""}
-                </li>
-              ))}
-              {data.log.length === 0 && <li className="text-muted-foreground">Sem alterações registradas.</li>}
-            </ul>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Registra apenas os campos que a equipe realmente alterou.
+            </p>
+            {data.log.length === 0 ? (
+              <p className="mt-4 text-sm text-muted-foreground">Sem alterações registradas.</p>
+            ) : (
+              <div className="mt-4 divide-y divide-border overflow-hidden rounded-md border border-border">
+                {data.log.map((l) => (
+                  <div key={l.id} className="flex flex-wrap items-start justify-between gap-3 p-3">
+                    <div className="min-w-[55%]">
+                      <p className="text-sm font-medium">{l.campo}</p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+                        <span className="rounded bg-surface px-1.5 py-0.5 text-muted-foreground line-through">
+                          {l.valor_anterior || "—"}
+                        </span>
+                        <ArrowRight className="size-3 text-muted-foreground" />
+                        <span className="rounded bg-primary/10 px-1.5 py-0.5 font-medium text-primary">
+                          {l.valor_novo || "—"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right text-xs text-muted-foreground">
+                      <p className="font-medium text-foreground">{l.usuario_nome || "Usuário"}</p>
+                      <p>{dataHora(l.criado_em)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
+
         </div>
 
         <Card className="h-fit space-y-5 p-5 shadow-panel lg:sticky lg:top-20">
@@ -317,7 +348,29 @@ function Detalhe() {
             rotuloPrazo="Prazo para atender"
             prazo={form.aviso_pagamento_prazo}
             onPrazo={(v) => setForm({ ...form, aviso_pagamento_prazo: v })}
-          />
+          >
+            <div className="mt-2 rounded-md bg-surface p-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-medium">Cliente confirmou o pagamento em conta bancária</span>
+                <Switch
+                  checked={form.pagamento_confirmado}
+                  onCheckedChange={(v) =>
+                    setForm({ ...form, pagamento_confirmado: v, pagamento_confirmado_em: v ? form.pagamento_confirmado_em : null })
+                  }
+                />
+              </div>
+              {form.pagamento_confirmado && (
+                <div className="mt-2 space-y-1">
+                  <Label className="text-xs text-muted-foreground">Data da confirmação</Label>
+                  <Input
+                    type="date"
+                    value={form.pagamento_confirmado_em ?? ""}
+                    onChange={(e) => setForm({ ...form, pagamento_confirmado_em: e.target.value || null })}
+                  />
+                </div>
+              )}
+            </div>
+          </BlocoControle>
           <BlocoControle
             titulo="Compensação de ofício"
             ativo={form.compensacao_oficio}
@@ -325,7 +378,34 @@ function Detalhe() {
             rotuloData="Prazo"
             data={form.compensacao_oficio_prazo}
             onData={(v) => setForm({ ...form, compensacao_oficio_prazo: v })}
-          />
+          >
+            <div className="mt-2 space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Opção informada</Label>
+              <div className="flex gap-2">
+                {([
+                  ["compensacao", "Compensação"],
+                  ["recusa", "Recusa"],
+                ] as const).map(([valor, rotulo]) => (
+                  <Button
+                    key={valor}
+                    type="button"
+                    size="sm"
+                    variant={form.compensacao_oficio_opcao === valor ? "default" : "outline"}
+                    className="flex-1"
+                    onClick={() =>
+                      setForm({
+                        ...form,
+                        compensacao_oficio_opcao: form.compensacao_oficio_opcao === valor ? "" : valor,
+                      })
+                    }
+                  >
+                    {rotulo}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </BlocoControle>
+
           <BlocoControle
             titulo="Intimação — análise preliminar"
             ativo={form.intimacao}
@@ -373,6 +453,7 @@ function BlocoControle({
   rotuloPrazo,
   prazo,
   onPrazo,
+  children,
 }: {
   titulo: string;
   ativo: boolean;
@@ -383,6 +464,7 @@ function BlocoControle({
   rotuloPrazo?: string;
   prazo?: string | null;
   onPrazo?: (v: string | null) => void;
+  children?: ReactNode;
 }) {
   const dias = ativo ? diasRestantes(onPrazo ? (prazo ?? null) : data) : null;
   return (
@@ -406,8 +488,10 @@ function BlocoControle({
               {dias < 0 ? `Vencido há ${Math.abs(dias)} dia(s)` : `Faltam ${dias} dia(s)`}
             </p>
           )}
+          {children}
         </div>
       )}
+
     </div>
   );
 }

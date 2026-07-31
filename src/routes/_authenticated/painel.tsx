@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -55,8 +55,11 @@ type Acomp = {
   aviso_pagamento: boolean;
   aviso_pagamento_data: string | null;
   aviso_pagamento_prazo: string | null;
+  pagamento_confirmado: boolean;
+  pagamento_confirmado_em: string | null;
   compensacao_oficio: boolean;
   compensacao_oficio_prazo: string | null;
+  compensacao_oficio_opcao: "" | "compensacao" | "recusa";
   intimacao: boolean;
   intimacao_prazo: string | null;
   encerrado: boolean;
@@ -71,14 +74,18 @@ const ACOMP_VAZIO = (id: string): Acomp => ({
   aviso_pagamento: false,
   aviso_pagamento_data: null,
   aviso_pagamento_prazo: null,
+  pagamento_confirmado: false,
+  pagamento_confirmado_em: null,
   compensacao_oficio: false,
   compensacao_oficio_prazo: null,
+  compensacao_oficio_opcao: "",
   intimacao: false,
   intimacao_prazo: null,
   encerrado: false,
   encerrado_em: null,
   observacao: "",
 });
+
 
 function dias(prazo: string | null): number | null {
   if (!prazo) return null;
@@ -551,14 +558,67 @@ function DialogPrazos({
               onAtivo={(v) => setForm({ ...form, aviso_pagamento: v })}
               prazo={form.aviso_pagamento_prazo}
               onPrazo={(v) => setForm({ ...form, aviso_pagamento_prazo: v })}
-            />
+            >
+              <div className="mt-2 rounded-md bg-surface p-2.5">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-medium">Cliente confirmou pagamento em conta</span>
+                  <Switch
+                    checked={form.pagamento_confirmado}
+                    onCheckedChange={(v) =>
+                      setForm({
+                        ...form,
+                        pagamento_confirmado: v,
+                        pagamento_confirmado_em: v ? form.pagamento_confirmado_em : null,
+                      })
+                    }
+                  />
+                </div>
+                {form.pagamento_confirmado && (
+                  <div className="mt-2 space-y-1">
+                    <Label className="text-xs text-muted-foreground">Data da confirmação</Label>
+                    <Input
+                      type="date"
+                      value={form.pagamento_confirmado_em ?? ""}
+                      onChange={(e) => setForm({ ...form, pagamento_confirmado_em: e.target.value || null })}
+                    />
+                  </div>
+                )}
+              </div>
+            </LinhaPrazo>
             <LinhaPrazo
               titulo="Compensação de ofício"
               ativo={form.compensacao_oficio}
               onAtivo={(v) => setForm({ ...form, compensacao_oficio: v })}
               prazo={form.compensacao_oficio_prazo}
               onPrazo={(v) => setForm({ ...form, compensacao_oficio_prazo: v })}
-            />
+            >
+              <div className="mt-2 space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Opção informada</Label>
+                <div className="flex gap-2">
+                  {([
+                    ["compensacao", "Compensação"],
+                    ["recusa", "Recusa"],
+                  ] as const).map(([valor, rotulo]) => (
+                    <Button
+                      key={valor}
+                      type="button"
+                      size="sm"
+                      variant={form.compensacao_oficio_opcao === valor ? "default" : "outline"}
+                      className="flex-1"
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          compensacao_oficio_opcao: form.compensacao_oficio_opcao === valor ? "" : valor,
+                        })
+                      }
+                    >
+                      {rotulo}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </LinhaPrazo>
+
             <LinhaPrazo
               titulo="Intimação"
               ativo={form.intimacao}
@@ -588,12 +648,14 @@ function LinhaPrazo({
   onAtivo,
   prazo,
   onPrazo,
+  children,
 }: {
   titulo: string;
   ativo: boolean;
   onAtivo: (v: boolean) => void;
   prazo: string | null;
   onPrazo: (v: string | null) => void;
+  children?: ReactNode;
 }) {
   const d = ativo ? dias(prazo) : null;
   return (
@@ -611,8 +673,10 @@ function LinhaPrazo({
               {d < 0 ? `Vencido há ${Math.abs(d)} dia(s)` : `Faltam ${d} dia(s)`}
             </p>
           )}
+          {children}
         </div>
       )}
+
     </div>
   );
 }
