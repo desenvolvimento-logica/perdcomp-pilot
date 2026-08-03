@@ -12,7 +12,7 @@ import {
   baixarArquivo,
   extrairResponsaveis,
 } from "@/lib/perdcomp.functions";
-import { moeda, dataHora, documento, tomSituacao } from "@/lib/formato";
+import { moeda, dataHora, documento, tomSituacao, abrirPdf } from "@/lib/formato";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -119,19 +119,6 @@ function prazosDe(a: Acomp | undefined): Prazo[] {
     .filter(([ativo, prazo]) => ativo && prazo)
     .map(([, prazo, rotulo]) => ({ rotulo, prazo: prazo as string, dias: dias(prazo as string) }))
     .sort((x, y) => (x.dias ?? 9999) - (y.dias ?? 9999));
-}
-
-/** Abre no navegador um PDF devolvido em base64 pelo servidor. */
-export function abrirPdf(base64: string, nome: string) {
-  const bin = atob(base64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
-  const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = nome.toLowerCase().endsWith(".pdf") ? nome : `${nome}.pdf`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
 function Painel() {
