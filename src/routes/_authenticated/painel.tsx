@@ -350,6 +350,14 @@ function Painel() {
             <Download className="size-4" />
             Exportar ({ordenadas.length})
           </Button>
+          <Button variant="outline" onClick={() => buscarResp.mutate()} disabled={buscarResp.isPending}>
+            {buscarResp.isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <UserSearch className="size-4" />
+            )}
+            Ler responsáveis
+          </Button>
           <Button onClick={() => sync.mutate()} disabled={sync.isPending}>
             {sync.isPending ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
             Sincronizar com o GOB
