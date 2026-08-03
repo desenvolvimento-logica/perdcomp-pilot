@@ -46,3 +46,16 @@ export function diasRestantes(prazo: string | null | undefined): number | null {
   if (Number.isNaN(d.getTime())) return null;
   return Math.ceil((d.getTime() - Date.now()) / 86400000);
 }
+
+/** Baixa no navegador um PDF devolvido em base64 pelo servidor. */
+export function abrirPdf(base64: string, nome: string) {
+  const bin = atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nome.toLowerCase().endsWith(".pdf") ? nome : `${nome}.pdf`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}

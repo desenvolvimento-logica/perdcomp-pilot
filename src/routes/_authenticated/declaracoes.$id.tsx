@@ -3,15 +3,17 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, AlertTriangle, BellRing, Check, Loader2, History } from "lucide-react";
+import { ArrowLeft, ArrowRight, AlertTriangle, BellRing, Check, Loader2, History, FileText, UserSearch } from "lucide-react";
 
 import {
   obterDeclaracao,
   salvarAcompanhamento,
   revisarAchado,
   resolverAlerta,
+  baixarArquivo,
+  buscarResponsavel,
 } from "@/lib/perdcomp.functions";
-import { moeda, dataHora, dataCurta, documento, tomSituacao, diasRestantes } from "@/lib/formato";
+import { moeda, dataHora, dataCurta, documento, tomSituacao, diasRestantes, abrirPdf } from "@/lib/formato";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -82,6 +84,8 @@ function Detalhe() {
   const salvar = useServerFn(salvarAcompanhamento);
   const revisar = useServerFn(revisarAchado);
   const resolver = useServerFn(resolverAlerta);
+  const baixarFn = useServerFn(baixarArquivo);
+  const responsavelFn = useServerFn(buscarResponsavel);
 
   const { data, isPending } = useQuery({
     queryKey: ["declaracao", id],
@@ -122,6 +126,22 @@ function Detalhe() {
       queryClient.invalidateQueries({ queryKey: ["declaracoes"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível salvar."),
+  });
+
+  const baixarMut = useMutation({
+    mutationFn: (tipo: "recibo" | "documento") => baixarFn({ data: { declaracaoId: id, tipo } }),
+    onSuccess: (r) => abrirPdf(r.base64, r.nome),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível baixar o documento."),
+  });
+
+  const responsavelMut = useMutation({
+    mutationFn: () => responsavelFn({ data: { id } }),
+    onSuccess: (r) => {
+      toast.success(r?.nome ? `Responsável identificado: ${r.nome}` : "Responsável não localizado no documento.");
+      queryClient.invalidateQueries({ queryKey: ["declaracao", id] });
+      queryClient.invalidateQueries({ queryKey: ["declaracoes"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível ler o responsável."),
   });
 
   const revisarMut = useMutation({
@@ -188,6 +208,51 @@ function Detalhe() {
               <Campo rotulo="Processo judicial" valor={asStr(bruto["processoJudicial"])} />
               <Campo rotulo="Retificado / cancelado" valor={asStr(bruto["retificadoCancelado"])} />
               <Campo rotulo="Consulta no e-CAC" valor={dataHora(asStr(bruto["dataConsulta"]))} />
+            </dl>
+          </Card>
+
+          <Card className="p-5 shadow-panel">
+            <h2 className="flex items-center gap-2 font-display text-base font-semibold">
+              <FileText className="size-4" /> Documentos e responsável pelo preenchimento
+            </h2>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!d.arquivo_documento_id || baixarMut.isPending}
+                onClick={() => baixarMut.mutate("documento")}
+              >
+                {baixarMut.isPending ? <Loader2 className="size-4 animate-spin" /> : <FileText className="size-4" />}
+                Declaração (PDF)
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!d.arquivo_recibo_id || baixarMut.isPending}
+                onClick={() => baixarMut.mutate("recibo")}
+              >
+                <FileText className="size-4" /> Recibo (PDF)
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={!d.arquivo_documento_id || responsavelMut.isPending}
+                onClick={() => responsavelMut.mutate()}
+              >
+                {responsavelMut.isPending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <UserSearch className="size-4" />
+                )}
+                Atualizar responsável
+              </Button>
+            </div>
+            <dl className="mt-5 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+              <Campo rotulo="Responsável pelo preenchimento" valor={d.responsavel_nome} />
+              <Campo rotulo="CPF do responsável" valor={d.responsavel_cpf} />
+              <Campo rotulo="CRC" valor={d.responsavel_crc} />
+              <Campo rotulo="E-mail do responsável" valor={d.responsavel_email} />
+              <Campo rotulo="Número do recibo" valor={d.numero_recibo} />
             </dl>
           </Card>
 

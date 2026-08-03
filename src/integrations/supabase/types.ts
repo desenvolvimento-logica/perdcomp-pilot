@@ -176,6 +176,10 @@ export type Database = {
       declaracoes: {
         Row: {
           ajuda_situacao: string | null
+          arquivo_documento_id: string | null
+          arquivo_documento_nome: string | null
+          arquivo_recibo_id: string | null
+          arquivo_recibo_nome: string | null
           cnpj: string | null
           codigo_receita: string | null
           credito_atualizado: number | null
@@ -186,12 +190,18 @@ export type Database = {
           id: string
           nome: string | null
           numero_perdcomp: string | null
+          numero_recibo: string | null
           periodo_apuracao: string | null
           primeira_sincronizacao: string
           processo_administrativo: string | null
           processo_habilitacao: string | null
           processo_judicial: string | null
           razao_social: string | null
+          responsavel_cpf: string | null
+          responsavel_crc: string | null
+          responsavel_email: string | null
+          responsavel_extraido_em: string | null
+          responsavel_nome: string | null
           saldo_credito_original: number | null
           saldo_restante: number | null
           situacao: string | null
@@ -206,6 +216,10 @@ export type Database = {
         }
         Insert: {
           ajuda_situacao?: string | null
+          arquivo_documento_id?: string | null
+          arquivo_documento_nome?: string | null
+          arquivo_recibo_id?: string | null
+          arquivo_recibo_nome?: string | null
           cnpj?: string | null
           codigo_receita?: string | null
           credito_atualizado?: number | null
@@ -216,12 +230,18 @@ export type Database = {
           id?: string
           nome?: string | null
           numero_perdcomp?: string | null
+          numero_recibo?: string | null
           periodo_apuracao?: string | null
           primeira_sincronizacao?: string
           processo_administrativo?: string | null
           processo_habilitacao?: string | null
           processo_judicial?: string | null
           razao_social?: string | null
+          responsavel_cpf?: string | null
+          responsavel_crc?: string | null
+          responsavel_email?: string | null
+          responsavel_extraido_em?: string | null
+          responsavel_nome?: string | null
           saldo_credito_original?: number | null
           saldo_restante?: number | null
           situacao?: string | null
@@ -236,6 +256,10 @@ export type Database = {
         }
         Update: {
           ajuda_situacao?: string | null
+          arquivo_documento_id?: string | null
+          arquivo_documento_nome?: string | null
+          arquivo_recibo_id?: string | null
+          arquivo_recibo_nome?: string | null
           cnpj?: string | null
           codigo_receita?: string | null
           credito_atualizado?: number | null
@@ -246,12 +270,18 @@ export type Database = {
           id?: string
           nome?: string | null
           numero_perdcomp?: string | null
+          numero_recibo?: string | null
           periodo_apuracao?: string | null
           primeira_sincronizacao?: string
           processo_administrativo?: string | null
           processo_habilitacao?: string | null
           processo_judicial?: string | null
           razao_social?: string | null
+          responsavel_cpf?: string | null
+          responsavel_crc?: string | null
+          responsavel_email?: string | null
+          responsavel_extraido_em?: string | null
+          responsavel_nome?: string | null
           saldo_credito_original?: number | null
           saldo_restante?: number | null
           situacao?: string | null

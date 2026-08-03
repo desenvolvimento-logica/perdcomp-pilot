@@ -18,7 +18,7 @@ export const listarDeclaracoes = createServerFn({ method: "GET" })
       supabase
         .from("declaracoes")
         .select(
-          "id, numero_perdcomp, cnpj, nome, razao_social, tipo_documento, tipo_credito, grupo_tributo, codigo_receita, situacao, ajuda_situacao, periodo_apuracao, data_transmissao, ultimo_registro, valor_total_credito, valor_utilizado, saldo_restante, credito_atualizado, total_debitos, processo_administrativo, processo_judicial, ultima_sincronizacao",
+          "id, numero_perdcomp, cnpj, nome, razao_social, tipo_documento, tipo_credito, grupo_tributo, codigo_receita, situacao, ajuda_situacao, periodo_apuracao, data_transmissao, ultimo_registro, valor_total_credito, valor_utilizado, saldo_restante, credito_atualizado, total_debitos, processo_administrativo, processo_judicial, ultima_sincronizacao, responsavel_nome, responsavel_cpf, arquivo_recibo_id, arquivo_documento_id",
         )
         .order("data_transmissao", { ascending: false, nullsFirst: false })
         .limit(3000),
@@ -305,4 +305,40 @@ export const criarPrimeiroAdmin = createServerFn({ method: "POST" })
     await supabaseAdmin.from("user_roles").delete().eq("user_id", criado.user.id);
     await supabaseAdmin.from("user_roles").insert({ user_id: criado.user.id, role: "admin" });
     return { ok: true };
+  });
+
+export const baixarArquivo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { declaracaoId: string; tipo: "recibo" | "documento" }) =>
+    z.object({ declaracaoId: z.string().uuid(), tipo: z.enum(["recibo", "documento"]) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: decl } = await context.supabase
+      .from("declaracoes")
+      .select("arquivo_recibo_id, arquivo_recibo_nome, arquivo_documento_id, arquivo_documento_nome")
+      .eq("id", data.declaracaoId)
+      .maybeSingle();
+    const anexoId = data.tipo === "recibo" ? decl?.arquivo_recibo_id : decl?.arquivo_documento_id;
+    if (!anexoId) throw new Error("Este documento não está disponível no GOB para esta declaração.");
+    const { baixarDocumentoGob } = await import("@/lib/gob.server");
+    const arquivo = await baixarDocumentoGob(anexoId);
+    const nomePreferido =
+      (data.tipo === "recibo" ? decl?.arquivo_recibo_nome : decl?.arquivo_documento_nome) ?? arquivo.nome;
+    return { ...arquivo, nome: nomePreferido };
+  });
+
+export const buscarResponsavel = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const { sincronizarResponsavel } = await import("@/lib/gob.server");
+    return await sincronizarResponsavel(data.id);
+  });
+
+export const extrairResponsaveis = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { limite?: number }) => z.object({ limite: z.number().min(1).max(400).default(150) }).parse(d))
+  .handler(async ({ data }) => {
+    const { extrairResponsaveisPendentes } = await import("@/lib/gob.server");
+    return await extrairResponsaveisPendentes(data.limite);
   });

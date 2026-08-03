@@ -3,10 +3,16 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { RefreshCw, AlertTriangle, Search, BellRing, CalendarClock, Loader2, Download } from "lucide-react";
+import { RefreshCw, AlertTriangle, Search, BellRing, CalendarClock, Loader2, Download, FileText, UserSearch } from "lucide-react";
 
-import { listarDeclaracoes, salvarAcompanhamento, sincronizar } from "@/lib/perdcomp.functions";
-import { moeda, dataHora, documento, tomSituacao } from "@/lib/formato";
+import {
+  listarDeclaracoes,
+  salvarAcompanhamento,
+  sincronizar,
+  baixarArquivo,
+  extrairResponsaveis,
+} from "@/lib/perdcomp.functions";
+import { moeda, dataHora, documento, tomSituacao, abrirPdf } from "@/lib/formato";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -120,8 +126,11 @@ function Painel() {
   const listar = useServerFn(listarDeclaracoes);
   const sincronizarFn = useServerFn(sincronizar);
   const salvarFn = useServerFn(salvarAcompanhamento);
+  const baixarFn = useServerFn(baixarArquivo);
+  const extrairFn = useServerFn(extrairResponsaveis);
   const [busca, setBusca] = useState("");
   const [situacao, setSituacao] = useState("todas");
+  const [responsavel, setResponsavel] = useState("todos");
   const [aba, setAba] = useState<"ativas" | "prazos" | "semos" | "auditoria" | "alertas" | "encerradas" | "terceiros">("ativas");
   const [editando, setEditando] = useState<{ id: string; titulo: string; form: Acomp } | null>(null);
   const [pagina, setPagina] = useState(1);
@@ -148,6 +157,23 @@ function Painel() {
       queryClient.invalidateQueries({ queryKey: ["declaracoes"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível salvar os prazos."),
+  });
+
+  const buscarResp = useMutation({
+    mutationFn: () => extrairFn({ data: { limite: 150 } }),
+    onSuccess: (r) => {
+      toast.success(
+        `Responsáveis lidos: ${r.processadas} declarações processadas · ${r.comResponsavel} com responsável · ${r.restantes} ainda pendentes`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["declaracoes"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível ler os responsáveis."),
+  });
+
+  const baixar = useMutation({
+    mutationFn: (v: { declaracaoId: string; tipo: "recibo" | "documento" }) => baixarFn({ data: v }),
+    onSuccess: (r) => abrirPdf(r.base64, r.nome),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível baixar o documento."),
   });
 
   const linhas = useMemo(() => {
@@ -179,10 +205,18 @@ function Painel() {
 
   useEffect(() => {
     setPagina(1);
-  }, [aba, busca, situacao]);
+  }, [aba, busca, situacao, responsavel]);
 
   const situacoes = useMemo(
     () => Array.from(new Set(linhas.map((l) => l.situacao).filter(Boolean))) as string[],
+    [linhas],
+  );
+
+  const responsaveis = useMemo(
+    () =>
+      Array.from(new Set(linhas.map((l) => l.responsavel_nome).filter(Boolean) as string[])).sort((a, b) =>
+        a.localeCompare(b, "pt-BR"),
+      ),
     [linhas],
   );
 
@@ -196,10 +230,12 @@ function Painel() {
     if (aba === "semos" && (l.ordemServico.trim() !== "" || l.encerrado)) return false;
     if (aba === "terceiros" && !l.terceiro) return false;
     if (situacao !== "todas" && l.situacao !== situacao) return false;
+    if (responsavel === "sem" && l.responsavel_nome) return false;
+    if (responsavel !== "todos" && responsavel !== "sem" && l.responsavel_nome !== responsavel) return false;
     if (busca) {
       const t = busca.toLowerCase();
       const alvo =
-        `${l.numero_perdcomp ?? ""} ${l.cnpj ?? ""} ${l.razao_social ?? ""} ${l.nome ?? ""} ${l.ordemServico}`.toLowerCase();
+        `${l.numero_perdcomp ?? ""} ${l.cnpj ?? ""} ${l.razao_social ?? ""} ${l.nome ?? ""} ${l.ordemServico} ${l.responsavel_nome ?? ""}`.toLowerCase();
       if (!alvo.includes(t)) return false;
     }
     return true;
@@ -238,6 +274,8 @@ function Painel() {
       "Crédito total",
       "Valor utilizado",
       "Saldo restante",
+      "Responsável pelo preenchimento",
+      "CPF do responsável",
       "Ordem de serviço",
       "Terceiro",
       "Aviso de pagamento (prazo)",
@@ -260,6 +298,8 @@ function Painel() {
         l.valor_total_credito ?? "",
         l.valor_utilizado ?? "",
         l.saldo_restante ?? "",
+        l.responsavel_nome ?? "",
+        l.responsavel_cpf ?? "",
         l.ordemServico,
         l.terceiro ? "Sim" : "Não",
         dataBr(l.acomp?.aviso_pagamento_prazo ?? null),
@@ -296,6 +336,14 @@ function Painel() {
           <Button variant="outline" onClick={exportarCsv}>
             <Download className="size-4" />
             Exportar ({ordenadas.length})
+          </Button>
+          <Button variant="outline" onClick={() => buscarResp.mutate()} disabled={buscarResp.isPending}>
+            {buscarResp.isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <UserSearch className="size-4" />
+            )}
+            Ler responsáveis
           </Button>
           <Button onClick={() => sync.mutate()} disabled={sync.isPending}>
             {sync.isPending ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
@@ -346,7 +394,7 @@ function Painel() {
             <Input
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar por número, CNPJ ou razão social"
+              placeholder="Buscar por número, CNPJ, razão social ou responsável"
               className="pl-9"
             />
           </div>
@@ -363,6 +411,20 @@ function Painel() {
               ))}
             </SelectContent>
           </Select>
+          <Select value={responsavel} onValueChange={setResponsavel}>
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="Responsável pelo preenchimento" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os responsáveis</SelectItem>
+              <SelectItem value="sem">Sem responsável identificado</SelectItem>
+              {responsaveis.map((r) => (
+                <SelectItem key={r} value={r}>
+                  {r}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="overflow-x-auto">
@@ -374,25 +436,27 @@ function Painel() {
                 <th className="px-4 py-3 font-medium">CNPJ</th>
                 <th className="px-4 py-3 font-medium">Razão social</th>
                 <th className="px-4 py-3 font-medium">Tributo / competência</th>
+                <th className="px-4 py-3 font-medium">Responsável preench.</th>
                 <th className="px-4 py-3 font-medium">Situação</th>
                 <th className="px-4 py-3 font-medium">Transmissão</th>
                 <th className="px-4 py-3 text-right font-medium">Saldo restante</th>
                 <th className="px-4 py-3 font-medium">Prazos</th>
                 <th className="px-4 py-3 font-medium">Apontamentos</th>
+                <th className="px-4 py-3 font-medium">Documentos</th>
                 <th className="px-4 py-3 font-medium">Ações</th>
               </tr>
             </thead>
             <tbody>
               {isPending && (
                 <tr>
-                  <td colSpan={11} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={13} className="px-4 py-12 text-center text-muted-foreground">
                     Carregando declarações…
                   </td>
                 </tr>
               )}
               {!isPending && visiveis.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={13} className="px-4 py-12 text-center text-muted-foreground">
                     Nenhuma declaração aqui. Use “Sincronizar com o GOB” para trazer os dados.
                   </td>
                 </tr>
@@ -448,6 +512,16 @@ function Painel() {
                     </p>
                     <p className="truncate text-xs text-muted-foreground">{l.periodo_apuracao ?? "—"}</p>
                   </td>
+                  <td className="max-w-44 px-4 py-3">
+                    {l.responsavel_nome ? (
+                      <>
+                        <p className="truncate text-xs font-medium">{l.responsavel_nome}</p>
+                        <p className="numero truncate text-xs text-muted-foreground">{l.responsavel_cpf ?? ""}</p>
+                      </>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${tomSituacao(l.situacao)}`}
@@ -500,6 +574,28 @@ function Painel() {
                       {l.achados === 0 && l.alertas === 0 && (
                         <span className="text-xs text-muted-foreground">Sem apontamentos</span>
                       )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 justify-start px-2 text-xs"
+                        disabled={!l.arquivo_documento_id || baixar.isPending}
+                        onClick={() => baixar.mutate({ declaracaoId: l.id, tipo: "documento" })}
+                      >
+                        <FileText className="size-3.5" /> Declaração
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 justify-start px-2 text-xs"
+                        disabled={!l.arquivo_recibo_id || baixar.isPending}
+                        onClick={() => baixar.mutate({ declaracaoId: l.id, tipo: "recibo" })}
+                      >
+                        <FileText className="size-3.5" /> Recibo
+                      </Button>
                     </div>
                   </td>
                   <td className="px-4 py-3">
