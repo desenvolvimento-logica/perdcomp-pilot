@@ -311,6 +311,8 @@ function Painel() {
         l.valor_total_credito ?? "",
         l.valor_utilizado ?? "",
         l.saldo_restante ?? "",
+        l.responsavel_nome ?? "",
+        l.responsavel_cpf ?? "",
         l.ordemServico,
         l.terceiro ? "Sim" : "Não",
         dataBr(l.acomp?.aviso_pagamento_prazo ?? null),
