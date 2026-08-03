@@ -407,7 +407,7 @@ function Painel() {
             <Input
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar por número, CNPJ ou razão social"
+              placeholder="Buscar por número, CNPJ, razão social ou responsável"
               className="pl-9"
             />
           </div>
@@ -424,6 +424,20 @@ function Painel() {
               ))}
             </SelectContent>
           </Select>
+          <Select value={responsavel} onValueChange={setResponsavel}>
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="Responsável pelo preenchimento" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os responsáveis</SelectItem>
+              <SelectItem value="sem">Sem responsável identificado</SelectItem>
+              {responsaveis.map((r) => (
+                <SelectItem key={r} value={r}>
+                  {r}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="overflow-x-auto">
@@ -435,11 +449,13 @@ function Painel() {
                 <th className="px-4 py-3 font-medium">CNPJ</th>
                 <th className="px-4 py-3 font-medium">Razão social</th>
                 <th className="px-4 py-3 font-medium">Tributo / competência</th>
+                <th className="px-4 py-3 font-medium">Responsável preench.</th>
                 <th className="px-4 py-3 font-medium">Situação</th>
                 <th className="px-4 py-3 font-medium">Transmissão</th>
                 <th className="px-4 py-3 text-right font-medium">Saldo restante</th>
                 <th className="px-4 py-3 font-medium">Prazos</th>
                 <th className="px-4 py-3 font-medium">Apontamentos</th>
+                <th className="px-4 py-3 font-medium">Documentos</th>
                 <th className="px-4 py-3 font-medium">Ações</th>
               </tr>
             </thead>
