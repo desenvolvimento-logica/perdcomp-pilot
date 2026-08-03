@@ -3,9 +3,15 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { RefreshCw, AlertTriangle, Search, BellRing, CalendarClock, Loader2, Download } from "lucide-react";
+import { RefreshCw, AlertTriangle, Search, BellRing, CalendarClock, Loader2, Download, FileText, UserSearch } from "lucide-react";
 
-import { listarDeclaracoes, salvarAcompanhamento, sincronizar } from "@/lib/perdcomp.functions";
+import {
+  listarDeclaracoes,
+  salvarAcompanhamento,
+  sincronizar,
+  baixarArquivo,
+  extrairResponsaveis,
+} from "@/lib/perdcomp.functions";
 import { moeda, dataHora, documento, tomSituacao } from "@/lib/formato";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -115,13 +121,29 @@ function prazosDe(a: Acomp | undefined): Prazo[] {
     .sort((x, y) => (x.dias ?? 9999) - (y.dias ?? 9999));
 }
 
+/** Abre no navegador um PDF devolvido em base64 pelo servidor. */
+export function abrirPdf(base64: string, nome: string) {
+  const bin = atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nome.toLowerCase().endsWith(".pdf") ? nome : `${nome}.pdf`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
 function Painel() {
   const queryClient = useQueryClient();
   const listar = useServerFn(listarDeclaracoes);
   const sincronizarFn = useServerFn(sincronizar);
   const salvarFn = useServerFn(salvarAcompanhamento);
+  const baixarFn = useServerFn(baixarArquivo);
+  const extrairFn = useServerFn(extrairResponsaveis);
   const [busca, setBusca] = useState("");
   const [situacao, setSituacao] = useState("todas");
+  const [responsavel, setResponsavel] = useState("todos");
   const [aba, setAba] = useState<"ativas" | "prazos" | "semos" | "auditoria" | "alertas" | "encerradas" | "terceiros">("ativas");
   const [editando, setEditando] = useState<{ id: string; titulo: string; form: Acomp } | null>(null);
   const [pagina, setPagina] = useState(1);
@@ -148,6 +170,23 @@ function Painel() {
       queryClient.invalidateQueries({ queryKey: ["declaracoes"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível salvar os prazos."),
+  });
+
+  const buscarResp = useMutation({
+    mutationFn: () => extrairFn({ data: { limite: 150 } }),
+    onSuccess: (r) => {
+      toast.success(
+        `Responsáveis lidos: ${r.processadas} declarações processadas · ${r.comResponsavel} com responsável · ${r.restantes} ainda pendentes`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["declaracoes"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível ler os responsáveis."),
+  });
+
+  const baixar = useMutation({
+    mutationFn: (v: { declaracaoId: string; tipo: "recibo" | "documento" }) => baixarFn({ data: v }),
+    onSuccess: (r) => abrirPdf(r.base64, r.nome),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível baixar o documento."),
   });
 
   const linhas = useMemo(() => {
@@ -179,10 +218,18 @@ function Painel() {
 
   useEffect(() => {
     setPagina(1);
-  }, [aba, busca, situacao]);
+  }, [aba, busca, situacao, responsavel]);
 
   const situacoes = useMemo(
     () => Array.from(new Set(linhas.map((l) => l.situacao).filter(Boolean))) as string[],
+    [linhas],
+  );
+
+  const responsaveis = useMemo(
+    () =>
+      Array.from(new Set(linhas.map((l) => l.responsavel_nome).filter(Boolean) as string[])).sort((a, b) =>
+        a.localeCompare(b, "pt-BR"),
+      ),
     [linhas],
   );
 
@@ -196,10 +243,12 @@ function Painel() {
     if (aba === "semos" && (l.ordemServico.trim() !== "" || l.encerrado)) return false;
     if (aba === "terceiros" && !l.terceiro) return false;
     if (situacao !== "todas" && l.situacao !== situacao) return false;
+    if (responsavel === "sem" && l.responsavel_nome) return false;
+    if (responsavel !== "todos" && responsavel !== "sem" && l.responsavel_nome !== responsavel) return false;
     if (busca) {
       const t = busca.toLowerCase();
       const alvo =
-        `${l.numero_perdcomp ?? ""} ${l.cnpj ?? ""} ${l.razao_social ?? ""} ${l.nome ?? ""} ${l.ordemServico}`.toLowerCase();
+        `${l.numero_perdcomp ?? ""} ${l.cnpj ?? ""} ${l.razao_social ?? ""} ${l.nome ?? ""} ${l.ordemServico} ${l.responsavel_nome ?? ""}`.toLowerCase();
       if (!alvo.includes(t)) return false;
     }
     return true;

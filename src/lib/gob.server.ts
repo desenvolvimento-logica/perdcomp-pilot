@@ -149,6 +149,11 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
           credito_atualizado: num(r["creditoAtualizado"]),
           total_debitos: num(r["totalDebitos"]),
           saldo_credito_original: num(r["saldoCreditoOriginal"]),
+          arquivo_documento_id: str(r["arquivoDocumentoId"]),
+          arquivo_documento_nome: str(r["arquivoDocumentoName"]),
+          arquivo_recibo_id: str(r["arquivoReciboId"]),
+          arquivo_recibo_nome: str(r["arquivoReciboName"]),
+          numero_recibo: str(r["numeroRecibo"]),
           tipo_documento: str(r["tipoDocumento"]),
           tipo_credito: str(r["tipoCredito"]),
           situacao: str(r["situacao"]),
@@ -282,4 +287,130 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
   await inserirEmBloco("alertas", novosAlertas);
 
   return resultado;
+}
+
+// ---------------------------------------------------------------------------
+// Documentos (recibo / declaração) e responsável pelo preenchimento
+// ---------------------------------------------------------------------------
+
+async function baixarAnexo(attachmentId: string): Promise<{ bytes: Uint8Array; nome: string }> {
+  const { url, token } = gobConfig();
+  const res = await fetch(`${url}/api/v1/Attachment/file/${attachmentId}`, {
+    headers: { "X-Api-Key": token },
+  });
+  if (!res.ok) throw new Error(`Falha ao baixar o arquivo no GOB [${res.status}].`);
+  const disp = res.headers.get("content-disposition") ?? "";
+  const m = /filename="?([^";]+)"?/.exec(disp);
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  return { bytes, nome: m?.[1] ?? `${attachmentId}.pdf` };
+}
+
+function paraBase64(bytes: Uint8Array): string {
+  let bin = "";
+  const bloco = 0x8000;
+  for (let i = 0; i < bytes.length; i += bloco) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + bloco));
+  }
+  return btoa(bin);
+}
+
+export async function baixarDocumentoGob(attachmentId: string) {
+  const { bytes, nome } = await baixarAnexo(attachmentId);
+  return { nome, base64: paraBase64(bytes), tipo: "application/pdf" };
+}
+
+export type Responsavel = {
+  nome: string | null;
+  cpf: string | null;
+  crc: string | null;
+  email: string | null;
+};
+
+export function extrairResponsavelDoTexto(texto: string): Responsavel {
+  const idx = texto.indexOf("Responsável pelo Preenchimento");
+  const trecho = idx >= 0 ? texto.slice(idx, idx + 800) : "";
+  const nome = /Nome\s+([^\n]+)/.exec(trecho)?.[1]?.trim() ?? null;
+  const cpf = /CPF\s+([\d.\-/]{11,20})/.exec(trecho)?.[1]?.trim() ?? null;
+  const crc = /CRC\s+([^\n]+)/.exec(trecho)?.[1]?.trim() ?? null;
+  const email = /[\w.+-]+@[\w-]+\.[\w.]+/.exec(trecho)?.[0] ?? null;
+  return { nome: nome || null, cpf: cpf || null, crc: crc || null, email };
+}
+
+export async function lerResponsavelDoPdf(attachmentId: string): Promise<Responsavel> {
+  const { extractText, getDocumentProxy } = await import("unpdf");
+  const { bytes } = await baixarAnexo(attachmentId);
+  const pdf = await getDocumentProxy(bytes);
+  const { text } = await extractText(pdf, { mergePages: true });
+  return extrairResponsavelDoTexto(typeof text === "string" ? text : String(text));
+}
+
+/** Lê o responsável pelo preenchimento de uma declaração e grava no banco. */
+export async function sincronizarResponsavel(declaracaoId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: decl } = await supabaseAdmin
+    .from("declaracoes")
+    .select("id, arquivo_documento_id")
+    .eq("id", declaracaoId)
+    .maybeSingle();
+  if (!decl?.arquivo_documento_id) return null;
+  const resp = await lerResponsavelDoPdf(decl.arquivo_documento_id);
+  await supabaseAdmin
+    .from("declaracoes")
+    .update({
+      responsavel_nome: resp.nome,
+      responsavel_cpf: resp.cpf,
+      responsavel_crc: resp.crc,
+      responsavel_email: resp.email,
+      responsavel_extraido_em: new Date().toISOString(),
+    })
+    .eq("id", declaracaoId);
+  return resp;
+}
+
+/** Processa em lote as declarações que ainda não têm responsável extraído. */
+export async function extrairResponsaveisPendentes(limite = 100) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: pendentes } = await supabaseAdmin
+    .from("declaracoes")
+    .select("id, arquivo_documento_id")
+    .is("responsavel_extraido_em", null)
+    .not("arquivo_documento_id", "is", null)
+    .limit(limite);
+
+  const lista = pendentes ?? [];
+  let processadas = 0;
+  let comResponsavel = 0;
+  const paralelo = 8;
+
+  for (let i = 0; i < lista.length; i += paralelo) {
+    await Promise.all(
+      lista.slice(i, i + paralelo).map(async (d) => {
+        try {
+          const resp = await lerResponsavelDoPdf(d.arquivo_documento_id as string);
+          await supabaseAdmin
+            .from("declaracoes")
+            .update({
+              responsavel_nome: resp.nome,
+              responsavel_cpf: resp.cpf,
+              responsavel_crc: resp.crc,
+              responsavel_email: resp.email,
+              responsavel_extraido_em: new Date().toISOString(),
+            })
+            .eq("id", d.id);
+          processadas += 1;
+          if (resp.nome) comResponsavel += 1;
+        } catch {
+          // Mantém pendente para uma próxima tentativa.
+        }
+      }),
+    );
+  }
+
+  const { count } = await supabaseAdmin
+    .from("declaracoes")
+    .select("id", { count: "exact", head: true })
+    .is("responsavel_extraido_em", null)
+    .not("arquivo_documento_id", "is", null);
+
+  return { processadas, comResponsavel, restantes: count ?? 0 };
 }
