@@ -462,14 +462,14 @@ function Painel() {
             <tbody>
               {isPending && (
                 <tr>
-                  <td colSpan={11} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={13} className="px-4 py-12 text-center text-muted-foreground">
                     Carregando declarações…
                   </td>
                 </tr>
               )}
               {!isPending && visiveis.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={13} className="px-4 py-12 text-center text-muted-foreground">
                     Nenhuma declaração aqui. Use “Sincronizar com o GOB” para trazer os dados.
                   </td>
                 </tr>
@@ -525,6 +525,16 @@ function Painel() {
                     </p>
                     <p className="truncate text-xs text-muted-foreground">{l.periodo_apuracao ?? "—"}</p>
                   </td>
+                  <td className="max-w-44 px-4 py-3">
+                    {l.responsavel_nome ? (
+                      <>
+                        <p className="truncate text-xs font-medium">{l.responsavel_nome}</p>
+                        <p className="numero truncate text-xs text-muted-foreground">{l.responsavel_cpf ?? ""}</p>
+                      </>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${tomSituacao(l.situacao)}`}
@@ -577,6 +587,28 @@ function Painel() {
                       {l.achados === 0 && l.alertas === 0 && (
                         <span className="text-xs text-muted-foreground">Sem apontamentos</span>
                       )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 justify-start px-2 text-xs"
+                        disabled={!l.arquivo_documento_id || baixar.isPending}
+                        onClick={() => baixar.mutate({ declaracaoId: l.id, tipo: "documento" })}
+                      >
+                        <FileText className="size-3.5" /> Declaração
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 justify-start px-2 text-xs"
+                        disabled={!l.arquivo_recibo_id || baixar.isPending}
+                        onClick={() => baixar.mutate({ declaracaoId: l.id, tipo: "recibo" })}
+                      >
+                        <FileText className="size-3.5" /> Recibo
+                      </Button>
                     </div>
                   </td>
                   <td className="px-4 py-3">
