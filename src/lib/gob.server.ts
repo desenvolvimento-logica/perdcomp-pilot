@@ -332,7 +332,11 @@ export function extrairResponsavelDoTexto(texto: string): Responsavel {
   const nome = /Nome\s+([^\n]+)/.exec(trecho)?.[1]?.trim() ?? null;
   const cpf = /CPF\s+([\d.\-/]{11,20})/.exec(trecho)?.[1]?.trim() ?? null;
   const crc = /CRC\s+([^\n]+)/.exec(trecho)?.[1]?.trim() ?? null;
-  const email = /[\w.+-]+@[\w-]+\.[\w.]+/.exec(trecho)?.[0] ?? null;
+  const emailBruto = /[\w.+-]+@[\w-]+\.[\w.]+/.exec(trecho)?.[0] ?? null;
+  // O texto do PDF costuma colar o rótulo seguinte no e-mail ("...com.brEndereço").
+  const email = emailBruto
+    ? emailBruto.replace(/Endere[^]*$/i, "").replace(/[^A-Za-z0-9]+$/, "").toLowerCase()
+    : null;
   return { nome: nome || null, cpf: cpf || null, crc: crc || null, email };
 }
 
