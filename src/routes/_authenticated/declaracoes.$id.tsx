@@ -10,7 +10,10 @@ import {
   salvarAcompanhamento,
   revisarAchado,
   resolverAlerta,
+  baixarArquivo,
+  buscarResponsavel,
 } from "@/lib/perdcomp.functions";
+import { abrirPdf } from "@/routes/_authenticated/painel";
 import { moeda, dataHora, dataCurta, documento, tomSituacao, diasRestantes } from "@/lib/formato";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
