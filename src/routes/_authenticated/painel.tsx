@@ -287,6 +287,8 @@ function Painel() {
       "Crédito total",
       "Valor utilizado",
       "Saldo restante",
+      "Responsável pelo preenchimento",
+      "CPF do responsável",
       "Ordem de serviço",
       "Terceiro",
       "Aviso de pagamento (prazo)",
