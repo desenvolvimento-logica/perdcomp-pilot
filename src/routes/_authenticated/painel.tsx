@@ -121,6 +121,140 @@ function prazosDe(a: Acomp | undefined): Prazo[] {
     .sort((x, y) => (x.dias ?? 9999) - (y.dias ?? 9999));
 }
 
+type Tri = "todos" | "sim" | "nao";
+
+type Filtros = {
+  texto: string;
+  situacao: string;
+  tributo: string;
+  responsavel: string;
+  ativa: Tri;
+  terceiro: Tri;
+  prazo: Tri;
+  auditoria: Tri;
+  alerta: Tri;
+  os: Tri;
+  transmissao: string;
+  de: string;
+  ate: string;
+};
+
+const FILTROS_PADRAO: Filtros = {
+  texto: "",
+  situacao: "todos",
+  tributo: "todos",
+  responsavel: "todos",
+  ativa: "sim",
+  terceiro: "nao",
+  prazo: "todos",
+  auditoria: "todos",
+  alerta: "todos",
+  os: "todos",
+  transmissao: "sempre",
+  de: "",
+  ate: "",
+};
+
+const PERIODOS: Array<[string, string]> = [
+  ["ultimos7", "Últimos 7 dias"],
+  ["sempre", "Sempre"],
+  ["vazio", "É vazio"],
+  ["mesCorrente", "Mês corrente"],
+  ["ultimoMes", "Último mês"],
+  ["proximoMes", "Próximo mês"],
+  ["trimestreCorrente", "Trimestre corrente"],
+  ["ultimoTrimestre", "Último trimestre"],
+  ["anoCorrente", "Ano corrente"],
+  ["ultimoAno", "Último ano"],
+  ["hoje", "Hoje"],
+  ["passado", "Passado"],
+  ["futuro", "Futuro"],
+  ["entre", "Entre"],
+];
+
+function intervalo(preset: string, de: string, ate: string): { ini: Date | null; fim: Date | null } | "vazio" | null {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const dia = (d: Date) => {
+    const x = new Date(d);
+    x.setHours(0, 0, 0, 0);
+    return x;
+  };
+  const mais = (d: Date, n: number) => dia(new Date(d.getTime() + n * 86400000));
+  const mes = (ano: number, m: number) => new Date(ano, m, 1);
+  const tri = Math.floor(hoje.getMonth() / 3);
+  switch (preset) {
+    case "sempre":
+      return null;
+    case "vazio":
+      return "vazio";
+    case "hoje":
+      return { ini: hoje, fim: mais(hoje, 1) };
+    case "ultimos7":
+      return { ini: mais(hoje, -7), fim: mais(hoje, 1) };
+    case "passado":
+      return { ini: null, fim: hoje };
+    case "futuro":
+      return { ini: mais(hoje, 1), fim: null };
+    case "mesCorrente":
+      return { ini: mes(hoje.getFullYear(), hoje.getMonth()), fim: mes(hoje.getFullYear(), hoje.getMonth() + 1) };
+    case "ultimoMes":
+      return { ini: mes(hoje.getFullYear(), hoje.getMonth() - 1), fim: mes(hoje.getFullYear(), hoje.getMonth()) };
+    case "proximoMes":
+      return { ini: mes(hoje.getFullYear(), hoje.getMonth() + 1), fim: mes(hoje.getFullYear(), hoje.getMonth() + 2) };
+    case "trimestreCorrente":
+      return { ini: mes(hoje.getFullYear(), tri * 3), fim: mes(hoje.getFullYear(), tri * 3 + 3) };
+    case "ultimoTrimestre":
+      return { ini: mes(hoje.getFullYear(), tri * 3 - 3), fim: mes(hoje.getFullYear(), tri * 3) };
+    case "anoCorrente":
+      return { ini: mes(hoje.getFullYear(), 0), fim: mes(hoje.getFullYear() + 1, 0) };
+    case "ultimoAno":
+      return { ini: mes(hoje.getFullYear() - 1, 0), fim: mes(hoje.getFullYear(), 0) };
+    case "entre":
+      return {
+        ini: de ? new Date(`${de}T00:00:00`) : null,
+        fim: ate ? mais(new Date(`${ate}T00:00:00`), 1) : null,
+      };
+    default:
+      return null;
+  }
+}
+
+function CampoFiltro({ rotulo, children }: { rotulo: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0 space-y-1">
+      <label className="block text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{rotulo}</label>
+      {children}
+    </div>
+  );
+}
+
+function TriFiltro({ valor, onChange }: { valor: Tri; onChange: (v: Tri) => void }) {
+  return (
+    <div className="flex h-9 overflow-hidden rounded-md border border-input bg-card">
+      {(
+        [
+          ["todos", "Todos"],
+          ["sim", "Sim"],
+          ["nao", "Não"],
+        ] as const
+      ).map(([v, r]) => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => onChange(v)}
+          className={`flex-1 px-2 text-xs transition-colors ${
+            valor === v ? "bg-primary font-medium text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+          }`}
+        >
+          {r}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+
 function Painel() {
   const queryClient = useQueryClient();
   const listar = useServerFn(listarDeclaracoes);
@@ -128,10 +262,9 @@ function Painel() {
   const salvarFn = useServerFn(salvarAcompanhamento);
   const baixarFn = useServerFn(baixarArquivo);
   const extrairFn = useServerFn(extrairResponsaveis);
-  const [busca, setBusca] = useState("");
-  const [situacao, setSituacao] = useState("todas");
-  const [responsavel, setResponsavel] = useState("todos");
-  const [aba, setAba] = useState<"ativas" | "prazos" | "semos" | "auditoria" | "alertas" | "encerradas" | "terceiros">("ativas");
+  const [f, setF] = useState<Filtros>(FILTROS_PADRAO);
+  const set = <K extends keyof Filtros>(k: K, v: Filtros[K]) => setF((p) => ({ ...p, [k]: v }));
+
   const [editando, setEditando] = useState<{ id: string; titulo: string; form: Acomp } | null>(null);
   const [pagina, setPagina] = useState(1);
   const porPagina = 20;
@@ -205,10 +338,18 @@ function Painel() {
 
   useEffect(() => {
     setPagina(1);
-  }, [aba, busca, situacao, responsavel]);
+  }, [f]);
 
   const situacoes = useMemo(
     () => Array.from(new Set(linhas.map((l) => l.situacao).filter(Boolean))) as string[],
+    [linhas],
+  );
+
+  const tributos = useMemo(
+    () =>
+      Array.from(new Set(linhas.map((l) => l.grupo_tributo).filter(Boolean) as string[])).sort((a, b) =>
+        a.localeCompare(b, "pt-BR"),
+      ),
     [linhas],
   );
 
@@ -220,20 +361,31 @@ function Painel() {
     [linhas],
   );
 
+  const periodo = intervalo(f.transmissao, f.de, f.ate);
+
+  const combina = (tri: Tri, valor: boolean) => tri === "todos" || (tri === "sim") === valor;
+
   const filtradas = linhas.filter((l) => {
-    if (aba !== "terceiros" && l.terceiro) return false;
-    if (aba === "ativas" && l.encerrado) return false;
-    if (aba === "encerradas" && !l.encerrado) return false;
-    if (aba === "alertas" && l.alertas === 0) return false;
-    if (aba === "auditoria" && l.achados === 0) return false;
-    if (aba === "prazos" && l.prazos.length === 0) return false;
-    if (aba === "semos" && (l.ordemServico.trim() !== "" || l.encerrado)) return false;
-    if (aba === "terceiros" && !l.terceiro) return false;
-    if (situacao !== "todas" && l.situacao !== situacao) return false;
-    if (responsavel === "sem" && l.responsavel_nome) return false;
-    if (responsavel !== "todos" && responsavel !== "sem" && l.responsavel_nome !== responsavel) return false;
-    if (busca) {
-      const t = busca.toLowerCase();
+    if (!combina(f.ativa, !l.encerrado)) return false;
+    if (!combina(f.terceiro, l.terceiro)) return false;
+    if (!combina(f.prazo, l.prazos.length > 0)) return false;
+    if (!combina(f.auditoria, l.achados > 0)) return false;
+    if (!combina(f.alerta, l.alertas > 0)) return false;
+    if (!combina(f.os, l.ordemServico.trim() !== "")) return false;
+    if (f.situacao !== "todos" && l.situacao !== f.situacao) return false;
+    if (f.tributo !== "todos" && l.grupo_tributo !== f.tributo) return false;
+    if (f.responsavel === "sem" && l.responsavel_nome) return false;
+    if (f.responsavel !== "todos" && f.responsavel !== "sem" && l.responsavel_nome !== f.responsavel) return false;
+    if (periodo === "vazio") {
+      if (l.data_transmissao) return false;
+    } else if (periodo) {
+      if (!l.data_transmissao) return false;
+      const t = new Date(l.data_transmissao).getTime();
+      if (periodo.ini && t < periodo.ini.getTime()) return false;
+      if (periodo.fim && t >= periodo.fim.getTime()) return false;
+    }
+    if (f.texto) {
+      const t = f.texto.toLowerCase();
       const alvo =
         `${l.numero_perdcomp ?? ""} ${l.cnpj ?? ""} ${l.razao_social ?? ""} ${l.nome ?? ""} ${l.ordemServico} ${l.responsavel_nome ?? ""}`.toLowerCase();
       if (!alvo.includes(t)) return false;
@@ -242,9 +394,10 @@ function Painel() {
   });
 
   const ordenadas =
-    aba === "prazos"
+    f.prazo === "sim"
       ? [...filtradas].sort((a, b) => (a.prazos[0]?.dias ?? 9999) - (b.prazos[0]?.dias ?? 9999))
       : filtradas;
+
 
   const totalPaginas = Math.max(1, Math.ceil(ordenadas.length / porPagina));
   const paginaAtual = Math.min(pagina, totalPaginas);
@@ -317,7 +470,7 @@ function Painel() {
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = `perdcomp-${aba}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `perdcomp-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success(`${ordenadas.length} declarações exportadas.`);
@@ -366,66 +519,134 @@ function Painel() {
       </div>
 
       <Card className="overflow-hidden p-0 shadow-panel">
-        <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
-          <div className="flex overflow-hidden rounded-md border border-border">
-            {(["ativas", "prazos", "semos", "auditoria", "alertas", "encerradas", "terceiros"] as const).map((k) => (
-              <button
-                key={k}
-                onClick={() => setAba(k)}
-                className={`px-3 py-1.5 text-sm capitalize transition-colors ${
-                  aba === k ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-muted"
-                }`}
-              >
-                {k === "alertas"
-                  ? "Com alerta"
-                  : k === "auditoria"
-                    ? "Pendência auditoria"
-                  : k === "prazos"
-                    ? "Com prazo"
-                    : k === "semos"
-                      ? "Sem O.S."
-                      : k}
+        <div className="space-y-4 border-b border-border bg-surface/60 p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative min-w-64 flex-1">
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={f.texto}
+                onChange={(e) => set("texto", e.target.value)}
+                placeholder="Buscar por número, CNPJ, razão social, O.S. ou responsável"
+                className="bg-card pl-9"
+              />
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setF(FILTROS_PADRAO)}>
+              Limpar filtros
+            </Button>
+          </div>
 
-              </button>
-            ))}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+            <CampoFiltro rotulo="Situação">
+              <Select value={f.situacao} onValueChange={(v) => set("situacao", v)}>
+                <SelectTrigger className="w-full bg-card">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {situacoes.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CampoFiltro>
+
+            <CampoFiltro rotulo="Tributo">
+              <Select value={f.tributo} onValueChange={(v) => set("tributo", v)}>
+                <SelectTrigger className="w-full bg-card">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {tributos.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CampoFiltro>
+
+            <CampoFiltro rotulo="Responsável preench.">
+              <Select value={f.responsavel} onValueChange={(v) => set("responsavel", v)}>
+                <SelectTrigger className="w-full bg-card">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="sem">Sem responsável identificado</SelectItem>
+                  {responsaveis.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CampoFiltro>
+
+            <CampoFiltro rotulo="Em acompanhamento?">
+              <TriFiltro valor={f.ativa} onChange={(v) => set("ativa", v)} />
+            </CampoFiltro>
+
+            <CampoFiltro rotulo="Terceiro?">
+              <TriFiltro valor={f.terceiro} onChange={(v) => set("terceiro", v)} />
+            </CampoFiltro>
+
+            <CampoFiltro rotulo="Com O.S.?">
+              <TriFiltro valor={f.os} onChange={(v) => set("os", v)} />
+            </CampoFiltro>
+
+            <CampoFiltro rotulo="Com prazo?">
+              <TriFiltro valor={f.prazo} onChange={(v) => set("prazo", v)} />
+            </CampoFiltro>
+
+            <CampoFiltro rotulo="Pendência auditoria?">
+              <TriFiltro valor={f.auditoria} onChange={(v) => set("auditoria", v)} />
+            </CampoFiltro>
+
+            <CampoFiltro rotulo="Com alerta?">
+              <TriFiltro valor={f.alerta} onChange={(v) => set("alerta", v)} />
+            </CampoFiltro>
+
+            <CampoFiltro rotulo="Transmitida em">
+              <Select value={f.transmissao} onValueChange={(v) => set("transmissao", v)}>
+                <SelectTrigger className="w-full bg-card">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PERIODOS.map(([v, r]) => (
+                    <SelectItem key={v} value={v}>
+                      {r}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CampoFiltro>
+
+            {f.transmissao === "entre" && (
+              <>
+                <CampoFiltro rotulo="De">
+                  <Input
+                    type="date"
+                    className="bg-card"
+                    value={f.de}
+                    onChange={(e) => set("de", e.target.value)}
+                  />
+                </CampoFiltro>
+                <CampoFiltro rotulo="Até">
+                  <Input
+                    type="date"
+                    className="bg-card"
+                    value={f.ate}
+                    onChange={(e) => set("ate", e.target.value)}
+                  />
+                </CampoFiltro>
+              </>
+            )}
           </div>
-          <div className="relative min-w-56 flex-1">
-            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar por número, CNPJ, razão social ou responsável"
-              className="pl-9"
-            />
-          </div>
-          <Select value={situacao} onValueChange={setSituacao}>
-            <SelectTrigger className="w-56">
-              <SelectValue placeholder="Situação" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as situações</SelectItem>
-              {situacoes.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={responsavel} onValueChange={setResponsavel}>
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Responsável pelo preenchimento" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os responsáveis</SelectItem>
-              <SelectItem value="sem">Sem responsável identificado</SelectItem>
-              {responsaveis.map((r) => (
-                <SelectItem key={r} value={r}>
-                  {r}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
+
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
