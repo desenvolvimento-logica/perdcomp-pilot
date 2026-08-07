@@ -519,66 +519,134 @@ function Painel() {
       </div>
 
       <Card className="overflow-hidden p-0 shadow-panel">
-        <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
-          <div className="flex overflow-hidden rounded-md border border-border">
-            {(["ativas", "prazos", "semos", "auditoria", "alertas", "encerradas", "terceiros"] as const).map((k) => (
-              <button
-                key={k}
-                onClick={() => setAba(k)}
-                className={`px-3 py-1.5 text-sm capitalize transition-colors ${
-                  aba === k ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-muted"
-                }`}
-              >
-                {k === "alertas"
-                  ? "Com alerta"
-                  : k === "auditoria"
-                    ? "Pendência auditoria"
-                  : k === "prazos"
-                    ? "Com prazo"
-                    : k === "semos"
-                      ? "Sem O.S."
-                      : k}
+        <div className="space-y-4 border-b border-border bg-surface/60 p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative min-w-64 flex-1">
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={f.texto}
+                onChange={(e) => set("texto", e.target.value)}
+                placeholder="Buscar por número, CNPJ, razão social, O.S. ou responsável"
+                className="bg-card pl-9"
+              />
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setF(FILTROS_PADRAO)}>
+              Limpar filtros
+            </Button>
+          </div>
 
-              </button>
-            ))}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+            <CampoFiltro rotulo="Situação">
+              <Select value={f.situacao} onValueChange={(v) => set("situacao", v)}>
+                <SelectTrigger className="w-full bg-card">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {situacoes.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CampoFiltro>
+
+            <CampoFiltro rotulo="Tributo">
+              <Select value={f.tributo} onValueChange={(v) => set("tributo", v)}>
+                <SelectTrigger className="w-full bg-card">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {tributos.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CampoFiltro>
+
+            <CampoFiltro rotulo="Responsável preench.">
+              <Select value={f.responsavel} onValueChange={(v) => set("responsavel", v)}>
+                <SelectTrigger className="w-full bg-card">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="sem">Sem responsável identificado</SelectItem>
+                  {responsaveis.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CampoFiltro>
+
+            <CampoFiltro rotulo="Em acompanhamento?">
+              <TriFiltro valor={f.ativa} onChange={(v) => set("ativa", v)} />
+            </CampoFiltro>
+
+            <CampoFiltro rotulo="Terceiro?">
+              <TriFiltro valor={f.terceiro} onChange={(v) => set("terceiro", v)} />
+            </CampoFiltro>
+
+            <CampoFiltro rotulo="Com O.S.?">
+              <TriFiltro valor={f.os} onChange={(v) => set("os", v)} />
+            </CampoFiltro>
+
+            <CampoFiltro rotulo="Com prazo?">
+              <TriFiltro valor={f.prazo} onChange={(v) => set("prazo", v)} />
+            </CampoFiltro>
+
+            <CampoFiltro rotulo="Pendência auditoria?">
+              <TriFiltro valor={f.auditoria} onChange={(v) => set("auditoria", v)} />
+            </CampoFiltro>
+
+            <CampoFiltro rotulo="Com alerta?">
+              <TriFiltro valor={f.alerta} onChange={(v) => set("alerta", v)} />
+            </CampoFiltro>
+
+            <CampoFiltro rotulo="Transmitida em">
+              <Select value={f.transmissao} onValueChange={(v) => set("transmissao", v)}>
+                <SelectTrigger className="w-full bg-card">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PERIODOS.map(([v, r]) => (
+                    <SelectItem key={v} value={v}>
+                      {r}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CampoFiltro>
+
+            {f.transmissao === "entre" && (
+              <>
+                <CampoFiltro rotulo="De">
+                  <Input
+                    type="date"
+                    className="bg-card"
+                    value={f.de}
+                    onChange={(e) => set("de", e.target.value)}
+                  />
+                </CampoFiltro>
+                <CampoFiltro rotulo="Até">
+                  <Input
+                    type="date"
+                    className="bg-card"
+                    value={f.ate}
+                    onChange={(e) => set("ate", e.target.value)}
+                  />
+                </CampoFiltro>
+              </>
+            )}
           </div>
-          <div className="relative min-w-56 flex-1">
-            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar por número, CNPJ, razão social ou responsável"
-              className="pl-9"
-            />
-          </div>
-          <Select value={situacao} onValueChange={setSituacao}>
-            <SelectTrigger className="w-56">
-              <SelectValue placeholder="Situação" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as situações</SelectItem>
-              {situacoes.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={responsavel} onValueChange={setResponsavel}>
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Responsável pelo preenchimento" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os responsáveis</SelectItem>
-              <SelectItem value="sem">Sem responsável identificado</SelectItem>
-              {responsaveis.map((r) => (
-                <SelectItem key={r} value={r}>
-                  {r}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
+
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
