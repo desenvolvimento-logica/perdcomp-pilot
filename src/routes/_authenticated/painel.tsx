@@ -470,7 +470,7 @@ function Painel() {
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = `perdcomp-${aba}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `perdcomp-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success(`${ordenadas.length} declarações exportadas.`);
