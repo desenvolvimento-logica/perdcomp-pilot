@@ -338,10 +338,18 @@ function Painel() {
 
   useEffect(() => {
     setPagina(1);
-  }, [aba, busca, situacao, responsavel]);
+  }, [f]);
 
   const situacoes = useMemo(
     () => Array.from(new Set(linhas.map((l) => l.situacao).filter(Boolean))) as string[],
+    [linhas],
+  );
+
+  const tributos = useMemo(
+    () =>
+      Array.from(new Set(linhas.map((l) => l.grupo_tributo).filter(Boolean) as string[])).sort((a, b) =>
+        a.localeCompare(b, "pt-BR"),
+      ),
     [linhas],
   );
 
@@ -353,20 +361,31 @@ function Painel() {
     [linhas],
   );
 
+  const periodo = intervalo(f.transmissao, f.de, f.ate);
+
+  const combina = (tri: Tri, valor: boolean) => tri === "todos" || (tri === "sim") === valor;
+
   const filtradas = linhas.filter((l) => {
-    if (aba !== "terceiros" && l.terceiro) return false;
-    if (aba === "ativas" && l.encerrado) return false;
-    if (aba === "encerradas" && !l.encerrado) return false;
-    if (aba === "alertas" && l.alertas === 0) return false;
-    if (aba === "auditoria" && l.achados === 0) return false;
-    if (aba === "prazos" && l.prazos.length === 0) return false;
-    if (aba === "semos" && (l.ordemServico.trim() !== "" || l.encerrado)) return false;
-    if (aba === "terceiros" && !l.terceiro) return false;
-    if (situacao !== "todas" && l.situacao !== situacao) return false;
-    if (responsavel === "sem" && l.responsavel_nome) return false;
-    if (responsavel !== "todos" && responsavel !== "sem" && l.responsavel_nome !== responsavel) return false;
-    if (busca) {
-      const t = busca.toLowerCase();
+    if (!combina(f.ativa, !l.encerrado)) return false;
+    if (!combina(f.terceiro, l.terceiro)) return false;
+    if (!combina(f.prazo, l.prazos.length > 0)) return false;
+    if (!combina(f.auditoria, l.achados > 0)) return false;
+    if (!combina(f.alerta, l.alertas > 0)) return false;
+    if (!combina(f.os, l.ordemServico.trim() !== "")) return false;
+    if (f.situacao !== "todos" && l.situacao !== f.situacao) return false;
+    if (f.tributo !== "todos" && l.grupo_tributo !== f.tributo) return false;
+    if (f.responsavel === "sem" && l.responsavel_nome) return false;
+    if (f.responsavel !== "todos" && f.responsavel !== "sem" && l.responsavel_nome !== f.responsavel) return false;
+    if (periodo === "vazio") {
+      if (l.data_transmissao) return false;
+    } else if (periodo) {
+      if (!l.data_transmissao) return false;
+      const t = new Date(l.data_transmissao).getTime();
+      if (periodo.ini && t < periodo.ini.getTime()) return false;
+      if (periodo.fim && t >= periodo.fim.getTime()) return false;
+    }
+    if (f.texto) {
+      const t = f.texto.toLowerCase();
       const alvo =
         `${l.numero_perdcomp ?? ""} ${l.cnpj ?? ""} ${l.razao_social ?? ""} ${l.nome ?? ""} ${l.ordemServico} ${l.responsavel_nome ?? ""}`.toLowerCase();
       if (!alvo.includes(t)) return false;
@@ -375,9 +394,10 @@ function Painel() {
   });
 
   const ordenadas =
-    aba === "prazos"
+    f.prazo === "sim"
       ? [...filtradas].sort((a, b) => (a.prazos[0]?.dias ?? 9999) - (b.prazos[0]?.dias ?? 9999))
       : filtradas;
+
 
   const totalPaginas = Math.max(1, Math.ceil(ordenadas.length / porPagina));
   const paginaAtual = Math.min(pagina, totalPaginas);
