@@ -121,6 +121,140 @@ function prazosDe(a: Acomp | undefined): Prazo[] {
     .sort((x, y) => (x.dias ?? 9999) - (y.dias ?? 9999));
 }
 
+type Tri = "todos" | "sim" | "nao";
+
+type Filtros = {
+  texto: string;
+  situacao: string;
+  tributo: string;
+  responsavel: string;
+  ativa: Tri;
+  terceiro: Tri;
+  prazo: Tri;
+  auditoria: Tri;
+  alerta: Tri;
+  os: Tri;
+  transmissao: string;
+  de: string;
+  ate: string;
+};
+
+const FILTROS_PADRAO: Filtros = {
+  texto: "",
+  situacao: "todos",
+  tributo: "todos",
+  responsavel: "todos",
+  ativa: "sim",
+  terceiro: "nao",
+  prazo: "todos",
+  auditoria: "todos",
+  alerta: "todos",
+  os: "todos",
+  transmissao: "sempre",
+  de: "",
+  ate: "",
+};
+
+const PERIODOS: Array<[string, string]> = [
+  ["ultimos7", "Últimos 7 dias"],
+  ["sempre", "Sempre"],
+  ["vazio", "É vazio"],
+  ["mesCorrente", "Mês corrente"],
+  ["ultimoMes", "Último mês"],
+  ["proximoMes", "Próximo mês"],
+  ["trimestreCorrente", "Trimestre corrente"],
+  ["ultimoTrimestre", "Último trimestre"],
+  ["anoCorrente", "Ano corrente"],
+  ["ultimoAno", "Último ano"],
+  ["hoje", "Hoje"],
+  ["passado", "Passado"],
+  ["futuro", "Futuro"],
+  ["entre", "Entre"],
+];
+
+function intervalo(preset: string, de: string, ate: string): { ini: Date | null; fim: Date | null } | "vazio" | null {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const dia = (d: Date) => {
+    const x = new Date(d);
+    x.setHours(0, 0, 0, 0);
+    return x;
+  };
+  const mais = (d: Date, n: number) => dia(new Date(d.getTime() + n * 86400000));
+  const mes = (ano: number, m: number) => new Date(ano, m, 1);
+  const tri = Math.floor(hoje.getMonth() / 3);
+  switch (preset) {
+    case "sempre":
+      return null;
+    case "vazio":
+      return "vazio";
+    case "hoje":
+      return { ini: hoje, fim: mais(hoje, 1) };
+    case "ultimos7":
+      return { ini: mais(hoje, -7), fim: mais(hoje, 1) };
+    case "passado":
+      return { ini: null, fim: hoje };
+    case "futuro":
+      return { ini: mais(hoje, 1), fim: null };
+    case "mesCorrente":
+      return { ini: mes(hoje.getFullYear(), hoje.getMonth()), fim: mes(hoje.getFullYear(), hoje.getMonth() + 1) };
+    case "ultimoMes":
+      return { ini: mes(hoje.getFullYear(), hoje.getMonth() - 1), fim: mes(hoje.getFullYear(), hoje.getMonth()) };
+    case "proximoMes":
+      return { ini: mes(hoje.getFullYear(), hoje.getMonth() + 1), fim: mes(hoje.getFullYear(), hoje.getMonth() + 2) };
+    case "trimestreCorrente":
+      return { ini: mes(hoje.getFullYear(), tri * 3), fim: mes(hoje.getFullYear(), tri * 3 + 3) };
+    case "ultimoTrimestre":
+      return { ini: mes(hoje.getFullYear(), tri * 3 - 3), fim: mes(hoje.getFullYear(), tri * 3) };
+    case "anoCorrente":
+      return { ini: mes(hoje.getFullYear(), 0), fim: mes(hoje.getFullYear() + 1, 0) };
+    case "ultimoAno":
+      return { ini: mes(hoje.getFullYear() - 1, 0), fim: mes(hoje.getFullYear(), 0) };
+    case "entre":
+      return {
+        ini: de ? new Date(`${de}T00:00:00`) : null,
+        fim: ate ? mais(new Date(`${ate}T00:00:00`), 1) : null,
+      };
+    default:
+      return null;
+  }
+}
+
+function CampoFiltro({ rotulo, children }: { rotulo: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0 space-y-1">
+      <label className="block text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{rotulo}</label>
+      {children}
+    </div>
+  );
+}
+
+function TriFiltro({ valor, onChange }: { valor: Tri; onChange: (v: Tri) => void }) {
+  return (
+    <div className="flex h-9 overflow-hidden rounded-md border border-input bg-card">
+      {(
+        [
+          ["todos", "Todos"],
+          ["sim", "Sim"],
+          ["nao", "Não"],
+        ] as const
+      ).map(([v, r]) => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => onChange(v)}
+          className={`flex-1 px-2 text-xs transition-colors ${
+            valor === v ? "bg-primary font-medium text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+          }`}
+        >
+          {r}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+
 function Painel() {
   const queryClient = useQueryClient();
   const listar = useServerFn(listarDeclaracoes);
