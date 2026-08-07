@@ -262,10 +262,9 @@ function Painel() {
   const salvarFn = useServerFn(salvarAcompanhamento);
   const baixarFn = useServerFn(baixarArquivo);
   const extrairFn = useServerFn(extrairResponsaveis);
-  const [busca, setBusca] = useState("");
-  const [situacao, setSituacao] = useState("todas");
-  const [responsavel, setResponsavel] = useState("todos");
-  const [aba, setAba] = useState<"ativas" | "prazos" | "semos" | "auditoria" | "alertas" | "encerradas" | "terceiros">("ativas");
+  const [f, setF] = useState<Filtros>(FILTROS_PADRAO);
+  const set = <K extends keyof Filtros>(k: K, v: Filtros[K]) => setF((p) => ({ ...p, [k]: v }));
+
   const [editando, setEditando] = useState<{ id: string; titulo: string; form: Acomp } | null>(null);
   const [pagina, setPagina] = useState(1);
   const porPagina = 20;
