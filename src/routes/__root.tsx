@@ -79,13 +79,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Painel PERDCOMP · Acompanhamento de declarações" },
+      { title: "PERDCOMP · Conecta Tributário · Acompanhamento de declarações" },
       {
         name: "description",
         content:
           "Painel interno de acompanhamento de declarações PER/DCOMP integrado ao sistema GOB, com alertas de mudança de situação e controle de prazos.",
       },
-      { property: "og:title", content: "Painel PERDCOMP · Acompanhamento de declarações" },
+      { property: "og:title", content: "PERDCOMP · Conecta Tributário · Acompanhamento de declarações" },
       {
         property: "og:description",
         content: "Acompanhamento de declarações PER/DCOMP com alertas, auditoria e controle interno da equipe.",

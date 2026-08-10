@@ -37,12 +37,12 @@ import {
 export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({
     meta: [
-      { title: "Declarações em acompanhamento · Painel PERDCOMP" },
+      { title: "Declarações em acompanhamento · PERDCOMP · Conecta Tributário" },
       {
         name: "description",
         content: "Lista das declarações PER/DCOMP sincronizadas do GOB, com alertas de situação, auditoria e prazos.",
       },
-      { property: "og:title", content: "Declarações em acompanhamento · Painel PERDCOMP" },
+      { property: "og:title", content: "Declarações em acompanhamento · PERDCOMP · Conecta Tributário" },
       {
         property: "og:description",
         content: "Lista das declarações PER/DCOMP sincronizadas do GOB com alertas e controle interno.",
