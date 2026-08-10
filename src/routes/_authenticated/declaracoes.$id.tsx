@@ -24,13 +24,13 @@ import { Textarea } from "@/components/ui/textarea";
 export const Route = createFileRoute("/_authenticated/declaracoes/$id")({
   head: () => ({
     meta: [
-      { title: "Detalhe da declaração · Painel PERDCOMP" },
+      { title: "Detalhe da declaração · PERDCOMP · Conecta Tributário" },
       {
         name: "description",
         content:
           "Extrato consolidado, achados de auditoria, histórico de situação e controle interno de uma declaração PER/DCOMP.",
       },
-      { property: "og:title", content: "Detalhe da declaração · Painel PERDCOMP" },
+      { property: "og:title", content: "Detalhe da declaração · PERDCOMP · Conecta Tributário" },
       {
         property: "og:description",
         content: "Extrato consolidado, auditoria, histórico e controle interno da declaração PER/DCOMP.",

@@ -42,7 +42,7 @@ function Layout() {
         <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-6 px-4">
           <Link to="/painel" className="flex items-center gap-2">
             <ShieldCheck className="size-5 text-sidebar-primary" />
-            <span className="font-display text-sm font-semibold">Painel PERDCOMP</span>
+            <span className="font-display text-sm font-semibold">Conecta Tributário · PERDCOMP</span>
           </Link>
           <nav className="flex items-center gap-1">
             {itens.map((item) => (

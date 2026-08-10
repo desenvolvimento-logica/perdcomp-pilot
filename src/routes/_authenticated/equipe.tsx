@@ -16,12 +16,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export const Route = createFileRoute("/_authenticated/equipe")({
   head: () => ({
     meta: [
-      { title: "Equipe e acessos · Painel PERDCOMP" },
+      { title: "Equipe e acessos · PERDCOMP · Conecta Tributário" },
       {
         name: "description",
         content: "Cadastro de integrantes da equipe e definição de perfis de acesso (Administrador e Operador).",
       },
-      { property: "og:title", content: "Equipe e acessos · Painel PERDCOMP" },
+      { property: "og:title", content: "Equipe e acessos · PERDCOMP · Conecta Tributário" },
       { property: "og:description", content: "Cadastro de integrantes e perfis de acesso do painel PERDCOMP." },
     ],
   }),
