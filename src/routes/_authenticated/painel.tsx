@@ -367,9 +367,8 @@ function Painel() {
           <p className="mt-1 text-sm text-muted-foreground">
             Dados do GOB · última sincronização {dataHora(linhas[0]?.ultima_sincronizacao ?? null)}
           </p>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Próxima sincronização em: <span className="numero font-medium text-foreground">{sync.isPending ? "sincronizando…" : contador}</span>
-          </p>
+
+
 
         </div>
         <div className="flex flex-wrap gap-2">
@@ -386,15 +385,23 @@ function Painel() {
             Ler responsáveis
           </Button>
           <Button
+            className="h-auto flex-col items-start gap-0.5 py-2"
             onClick={() => {
               sync.mutate({});
               setProximaSync(Date.now() + INTERVALO_SYNC);
             }}
             disabled={sync.isPending}
           >
-            {sync.isPending ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-            Sincronizar com o GOB
+            <span className="flex items-center gap-2">
+              {sync.isPending ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+              Sincronizar com o GOB
+            </span>
+            <span className="text-xs font-normal opacity-80">
+              Próxima sincronização em:{" "}
+              <span className="numero">{sync.isPending ? "sincronizando…" : contador}</span>
+            </span>
           </Button>
+
         </div>
       </div>
 
