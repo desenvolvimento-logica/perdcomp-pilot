@@ -49,12 +49,11 @@ function Entrada() {
       if (processando.current) return;
       processando.current = true;
       try {
-        const { tokenHash, email } = await trocarSessao({ data: { hubToken } });
-        void email;
-        const { error } = await supabase.auth.verifyOtp({
-          type: "magiclink",
-          token_hash: tokenHash,
-        } as never);
+        const { accessToken, refreshToken } = await trocarSessao({ data: { hubToken } });
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
         if (error) throw new Error(error.message);
         navigate({ to: "/painel", replace: true });
       } catch (e) {
@@ -69,12 +68,11 @@ function Entrada() {
     if (processando.current) return;
     processando.current = true;
     try {
-      const { tokenHash, email } = await abrirSessaoEmbutida();
-      void email;
-      const { error } = await supabase.auth.verifyOtp({
-        type: "magiclink",
-        token_hash: tokenHash,
-      } as never);
+      const { accessToken, refreshToken } = await abrirSessaoEmbutida();
+      const { error } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
       if (error) throw new Error(error.message);
       navigate({ to: "/painel", replace: true });
     } catch (e) {
