@@ -139,15 +139,34 @@ function Painel() {
   const { data, isPending } = useQuery({ queryKey: ["declaracoes"], queryFn: () => listar() });
 
   const sync = useMutation({
-    mutationFn: () => sincronizarFn(),
+    mutationFn: (opts?: { silencioso?: boolean }) => sincronizarFn().then((r) => ({ ...r, ...opts })),
     onSuccess: (r) => {
-      toast.success(
-        `Sincronizado: ${r.total} declarações lidas · ${r.novas} novas · ${r.atualizadas} com nova situação · ${r.alertas} alertas`,
-      );
+      if (!r.silencioso) {
+        toast.success(
+          `Sincronizado: ${r.total} declarações lidas · ${r.novas} novas · ${r.atualizadas} com nova situação · ${r.alertas} alertas`,
+        );
+      } else if (r.novas > 0 || r.atualizadas > 0) {
+        toast.success(`Atualização automática: ${r.novas} novas · ${r.atualizadas} com nova situação`);
+      }
       queryClient.invalidateQueries({ queryKey: ["declaracoes"] });
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha na sincronização com o GOB."),
+    onError: (e, opts) => {
+      if (opts?.silencioso) return;
+      toast.error(e instanceof Error ? e.message : "Falha na sincronização com o GOB.");
+    },
   });
+
+  // Sincroniza ao abrir o app e a cada 5 minutos enquanto a sessão estiver ativa.
+  const dispararSync = sync.mutate;
+  useEffect(() => {
+    dispararSync({ silencioso: true });
+    const id = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      dispararSync({ silencioso: true });
+    }, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [dispararSync]);
+
 
   const salvarPrazos = useMutation({
     mutationFn: (form: Acomp) => salvarFn({ data: form }),
@@ -345,7 +364,7 @@ function Painel() {
             )}
             Ler responsáveis
           </Button>
-          <Button onClick={() => sync.mutate()} disabled={sync.isPending}>
+          <Button onClick={() => sync.mutate({})} disabled={sync.isPending}>
             {sync.isPending ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
             Sincronizar com o GOB
           </Button>
