@@ -367,9 +367,8 @@ function Painel() {
           <p className="mt-1 text-sm text-muted-foreground">
             Dados do GOB · última sincronização {dataHora(linhas[0]?.ultima_sincronizacao ?? null)}
           </p>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Próxima sincronização em: <span className="numero font-medium text-foreground">{sync.isPending ? "sincronizando…" : contador}</span>
-          </p>
+
+
 
         </div>
         <div className="flex flex-wrap gap-2">
