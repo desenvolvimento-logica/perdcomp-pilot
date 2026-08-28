@@ -66,5 +66,28 @@ export async function garantirSessaoLocal(hubUser: HubUser) {
     throw new Error(linkErro?.message ?? "Não foi possível abrir a sessão do PERDCOMP.");
   }
 
-  return { tokenHash, email: hubUser.email };
+  // Troca o token pela sessão já no servidor e devolve os tokens prontos.
+  const url = process.env['SUPABASE_URL']!;
+  const apikey = process.env['SUPABASE_PUBLISHABLE_KEY']!;
+  const res = await fetch(`${url}/auth/v1/verify`, {
+    method: "POST",
+    headers: { apikey, "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "magiclink", token_hash: tokenHash }),
+  });
+  const sessao = (await res.json()) as {
+    access_token?: string;
+    refresh_token?: string;
+    error_description?: string;
+    message?: string;
+  };
+  if (!res.ok || !sessao.access_token || !sessao.refresh_token) {
+    throw new Error(sessao.error_description ?? sessao.message ?? "Não foi possível abrir a sessão.");
+  }
+
+  return {
+    accessToken: sessao.access_token,
+    refreshToken: sessao.refresh_token,
+    email: hubUser.email,
+  };
 }
+
