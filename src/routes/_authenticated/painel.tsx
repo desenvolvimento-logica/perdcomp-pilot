@@ -157,15 +157,32 @@ function Painel() {
   });
 
   // Sincroniza ao abrir o app e a cada 5 minutos enquanto a sessão estiver ativa.
+  const INTERVALO_SYNC = 5 * 60 * 1000;
   const dispararSync = sync.mutate;
+  const [proximaSync, setProximaSync] = useState<number>(() => Date.now() + INTERVALO_SYNC);
+  const [agora, setAgora] = useState<number>(() => Date.now());
+
   useEffect(() => {
     dispararSync({ silencioso: true });
+    setProximaSync(Date.now() + INTERVALO_SYNC);
     const id = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
       dispararSync({ silencioso: true });
-    }, 5 * 60 * 1000);
+      setProximaSync(Date.now() + INTERVALO_SYNC);
+    }, INTERVALO_SYNC);
     return () => clearInterval(id);
-  }, [dispararSync]);
+  }, [dispararSync, INTERVALO_SYNC]);
+
+  useEffect(() => {
+    const id = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const restanteMs = Math.max(0, proximaSync - agora);
+  const contador = `${String(Math.floor(restanteMs / 60000)).padStart(2, "0")}:${String(
+    Math.floor((restanteMs % 60000) / 1000),
+  ).padStart(2, "0")}`;
+
 
 
   const salvarPrazos = useMutation({
@@ -350,6 +367,10 @@ function Painel() {
           <p className="mt-1 text-sm text-muted-foreground">
             Dados do GOB · última sincronização {dataHora(linhas[0]?.ultima_sincronizacao ?? null)}
           </p>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Próxima sincronização em: <span className="numero font-medium text-foreground">{sync.isPending ? "sincronizando…" : contador}</span>
+          </p>
+
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={exportarCsv}>
@@ -364,7 +385,13 @@ function Painel() {
             )}
             Ler responsáveis
           </Button>
-          <Button onClick={() => sync.mutate({})} disabled={sync.isPending}>
+          <Button
+            onClick={() => {
+              sync.mutate({});
+              setProximaSync(Date.now() + INTERVALO_SYNC);
+            }}
+            disabled={sync.isPending}
+          >
             {sync.isPending ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
             Sincronizar com o GOB
           </Button>
