@@ -11,3 +11,15 @@ export const sessaoViaHub = createServerFn({ method: "POST" })
     const hubUser = await verificarUsuarioHub(data.hubToken);
     return garantirSessaoLocal(hubUser);
   });
+
+// O módulo é aberto por dentro de outro aplicativo, que já autenticou a equipe.
+// Quando não há token do portal, abrimos a sessão operacional compartilhada
+// para que o sistema apareça direto, sem tela de login.
+export const sessaoEmbutida = createServerFn({ method: "POST" }).handler(async () => {
+  const { garantirSessaoLocal } = await import("./hub-sso.server");
+  return garantirSessaoLocal({
+    id: "embutido",
+    email: "equipe@painelperdcomp.com.br",
+    nome: "Equipe Conecta Tributário",
+  });
+});
