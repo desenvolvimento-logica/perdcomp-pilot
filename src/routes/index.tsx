@@ -50,10 +50,10 @@ function Entrada() {
       processando.current = true;
       try {
         const { tokenHash, email } = await trocarSessao({ data: { hubToken } });
+        void email;
         const { error } = await supabase.auth.verifyOtp({
           type: "magiclink",
           token_hash: tokenHash,
-          email,
         } as never);
         if (error) throw new Error(error.message);
         navigate({ to: "/painel", replace: true });
@@ -70,10 +70,10 @@ function Entrada() {
     processando.current = true;
     try {
       const { tokenHash, email } = await abrirSessaoEmbutida();
+      void email;
       const { error } = await supabase.auth.verifyOtp({
         type: "magiclink",
         token_hash: tokenHash,
-        email,
       } as never);
       if (error) throw new Error(error.message);
       navigate({ to: "/painel", replace: true });
