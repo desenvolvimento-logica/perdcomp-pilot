@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ShieldCheck, Loader2, LockKeyhole } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { sessaoViaHub } from "@/lib/hub-sso.functions";
+import { sessaoEmbutida, sessaoViaHub } from "@/lib/hub-sso.functions";
 
 export const Route = createFileRoute("/")({
   ssr: false,
@@ -40,6 +40,7 @@ function lerTokenDaUrl(): string | null {
 function Entrada() {
   const navigate = useNavigate();
   const trocarSessao = useServerFn(sessaoViaHub);
+  const abrirSessaoEmbutida = useServerFn(sessaoEmbutida);
   const [erro, setErro] = useState<string | null>(null);
   const processando = useRef(false);
 
@@ -64,6 +65,24 @@ function Entrada() {
     [navigate, trocarSessao],
   );
 
+  const entrarEmbutido = useCallback(async () => {
+    if (processando.current) return;
+    processando.current = true;
+    try {
+      const { tokenHash, email } = await abrirSessaoEmbutida();
+      const { error } = await supabase.auth.verifyOtp({
+        type: "magiclink",
+        token_hash: tokenHash,
+        email,
+      } as never);
+      if (error) throw new Error(error.message);
+      navigate({ to: "/painel", replace: true });
+    } catch (e) {
+      processando.current = false;
+      setErro(e instanceof Error ? e.message : "Não foi possível abrir o sistema.");
+    }
+  }, [abrirSessaoEmbutida, navigate]);
+
   useEffect(() => {
     let ativo = true;
 
@@ -79,10 +98,11 @@ function Entrada() {
         void entrarComToken(token);
         return;
       }
-      // Sem token: pede a sessão ao aplicativo que embute este módulo e segue direto.
+      // Sem token: pede a sessão ao aplicativo que embute este módulo e,
+      // se não vier resposta, abre a sessão da equipe e mostra o sistema direto.
       window.parent?.postMessage({ type: "conecta-tributario:solicitar-sessao" }, "*");
       window.setTimeout(() => {
-        if (ativo && !processando.current) navigate({ to: "/painel", replace: true });
+        if (ativo && !processando.current) void entrarEmbutido();
       }, 1200);
     }
 
@@ -98,7 +118,7 @@ function Entrada() {
       ativo = false;
       window.removeEventListener("message", onMensagem);
     };
-  }, [entrarComToken, navigate]);
+  }, [entrarComToken, entrarEmbutido, navigate]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-6">
