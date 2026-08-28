@@ -79,13 +79,11 @@ function Entrada() {
         void entrarComToken(token);
         return;
       }
-      // Sem token na URL: pede a sessão ao portal que embute este módulo.
+      // Sem token: pede a sessão ao aplicativo que embute este módulo e segue direto.
       window.parent?.postMessage({ type: "conecta-tributario:solicitar-sessao" }, "*");
       window.setTimeout(() => {
-        if (ativo && !processando.current) {
-          setErro("Acesse o PERDCOMP pelo portal Conecta Tributário.");
-        }
-      }, 6000);
+        if (ativo && !processando.current) navigate({ to: "/painel", replace: true });
+      }, 1200);
     }
 
     function onMensagem(ev: MessageEvent) {
@@ -109,18 +107,12 @@ function Entrada() {
           {erro ? <LockKeyhole className="size-6" /> : <ShieldCheck className="size-6" />}
         </div>
         <h1 className="font-display text-2xl font-semibold">PERDCOMP · Conecta Tributário</h1>
-        {erro ? (
-          <p className="text-sm text-muted-foreground">{erro}</p>
-        ) : (
-          <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />
-            Validando seu acesso pelo portal…
-          </p>
-        )}
-        <p className="text-xs text-muted-foreground/70">
-          Este módulo não possui login próprio: o acesso é o mesmo do Conecta Tributário.
+        <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" />
+          Abrindo o sistema…
         </p>
       </div>
     </main>
   );
 }
+
