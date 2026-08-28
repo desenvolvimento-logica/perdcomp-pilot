@@ -9,12 +9,9 @@ import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) throw redirect({ to: "/" });
-  },
   component: Layout,
 });
+
 
 function Layout() {
   const navigate = useNavigate();
