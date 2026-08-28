@@ -385,7 +385,13 @@ function Painel() {
             )}
             Ler responsáveis
           </Button>
-          <Button onClick={() => sync.mutate({})} disabled={sync.isPending}>
+          <Button
+            onClick={() => {
+              sync.mutate({});
+              setProximaSync(Date.now() + INTERVALO_SYNC);
+            }}
+            disabled={sync.isPending}
+          >
             {sync.isPending ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
             Sincronizar com o GOB
           </Button>
