@@ -19,8 +19,8 @@ export const Route = createFileRoute("/_authenticated")({
         await supabase.from("pc_profiles").upsert({
           id: user.id,
           nome:
-            user.user_metadata?.nome ??
-            user.user_metadata?.full_name ??
+            user.user_metadata?.['nome'] ??
+            user.user_metadata?.['full_name'] ??
             user.email?.split("@")[0] ??
             "",
           email: user.email ?? "",
