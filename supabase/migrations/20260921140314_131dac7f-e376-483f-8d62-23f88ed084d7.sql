@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.pc_handle_new_user() FROM authenticated, anon;

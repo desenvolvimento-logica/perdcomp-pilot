@@ -124,7 +124,7 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
   const agora = new Date().toISOString();
 
   // Estado atual do banco, em poucas consultas (evita 1 ida ao banco por registro).
-  const { data: atuais } = await supabaseAdmin.from("declaracoes").select("id, gob_id, situacao");
+  const { data: atuais } = await supabaseAdmin.from("pc_declaracoes").select("id, gob_id, situacao");
   const porGobId = new Map((atuais ?? []).map((d) => [d.gob_id, d]));
 
   const payloads = registros
@@ -177,7 +177,7 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
   const bloco = 300;
   for (let i = 0; i < payloads.length; i += bloco) {
     const { error } = await supabaseAdmin
-      .from("declaracoes")
+      .from("pc_declaracoes")
       .upsert(
         payloads.slice(i, i + bloco).map((p) => p.payload),
         { onConflict: "gob_id" },
@@ -185,7 +185,7 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
     if (error) throw new Error(`Falha ao gravar declarações: ${error.message}`);
   }
 
-  const { data: depois } = await supabaseAdmin.from("declaracoes").select("id, gob_id");
+  const { data: depois } = await supabaseAdmin.from("pc_declaracoes").select("id, gob_id");
   const idPorGobId = new Map((depois ?? []).map((d) => [d.gob_id, d.id]));
 
   const novosAcompanhamentos: Array<{ declaracao_id: string }> = [];
@@ -211,7 +211,7 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
   for (let i = 0; i < ids.length; i += 500) {
     const fatia = ids.slice(i, i + 500);
     const { data: ach } = await supabaseAdmin
-      .from("auditoria_achados")
+      .from("pc_auditoria_achados")
       .select("declaracao_id, codigo")
       .in("declaracao_id", fatia);
     for (const a of ach ?? []) achadosExistentes.add(`${a.declaracao_id}|${a.codigo}`);
@@ -263,7 +263,7 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
 
 
   async function inserirEmBloco(
-    tabela: "acompanhamentos" | "status_historico" | "alertas" | "auditoria_achados",
+    tabela: "pc_acompanhamentos" | "pc_status_historico" | "pc_alertas" | "pc_auditoria_achados",
     linhas: unknown[],
     onConflict?: string,
   ) {
@@ -281,10 +281,10 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
     new Map(novosAchados.map((a) => [`${a.declaracao_id}|${a.codigo}`, a])).values(),
   );
 
-  await inserirEmBloco("acompanhamentos", novosAcompanhamentos, "declaracao_id");
-  await inserirEmBloco("status_historico", novoHistorico);
-  await inserirEmBloco("auditoria_achados", achadosUnicos, "declaracao_id,codigo");
-  await inserirEmBloco("alertas", novosAlertas);
+  await inserirEmBloco("pc_acompanhamentos", novosAcompanhamentos, "declaracao_id");
+  await inserirEmBloco("pc_status_historico", novoHistorico);
+  await inserirEmBloco("pc_auditoria_achados", achadosUnicos, "declaracao_id,codigo");
+  await inserirEmBloco("pc_alertas", novosAlertas);
 
   return resultado;
 }
@@ -352,14 +352,14 @@ export async function lerResponsavelDoPdf(attachmentId: string): Promise<Respons
 export async function sincronizarResponsavel(declaracaoId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: decl } = await supabaseAdmin
-    .from("declaracoes")
+    .from("pc_declaracoes")
     .select("id, arquivo_documento_id")
     .eq("id", declaracaoId)
     .maybeSingle();
   if (!decl?.arquivo_documento_id) return null;
   const resp = await lerResponsavelDoPdf(decl.arquivo_documento_id);
   await supabaseAdmin
-    .from("declaracoes")
+    .from("pc_declaracoes")
     .update({
       responsavel_nome: resp.nome,
       responsavel_cpf: resp.cpf,
@@ -375,7 +375,7 @@ export async function sincronizarResponsavel(declaracaoId: string) {
 export async function extrairResponsaveisPendentes(limite = 100) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: pendentes } = await supabaseAdmin
-    .from("declaracoes")
+    .from("pc_declaracoes")
     .select("id, arquivo_documento_id")
     .is("responsavel_extraido_em", null)
     .not("arquivo_documento_id", "is", null)
@@ -392,7 +392,7 @@ export async function extrairResponsaveisPendentes(limite = 100) {
         try {
           const resp = await lerResponsavelDoPdf(d.arquivo_documento_id as string);
           await supabaseAdmin
-            .from("declaracoes")
+            .from("pc_declaracoes")
             .update({
               responsavel_nome: resp.nome,
               responsavel_cpf: resp.cpf,
@@ -411,7 +411,7 @@ export async function extrairResponsaveisPendentes(limite = 100) {
   }
 
   const { count } = await supabaseAdmin
-    .from("declaracoes")
+    .from("pc_declaracoes")
     .select("id", { count: "exact", head: true })
     .is("responsavel_extraido_em", null)
     .not("arquivo_documento_id", "is", null);

@@ -16,16 +16,16 @@ export const listarDeclaracoes = createServerFn({ method: "GET" })
     const { supabase } = context;
     const [decls, acomps, achados, alertas, perfis] = await Promise.all([
       supabase
-        .from("declaracoes")
+        .from("pc_declaracoes")
         .select(
           "id, numero_perdcomp, cnpj, nome, razao_social, tipo_documento, tipo_credito, grupo_tributo, codigo_receita, situacao, ajuda_situacao, periodo_apuracao, data_transmissao, ultimo_registro, valor_total_credito, valor_utilizado, saldo_restante, credito_atualizado, total_debitos, processo_administrativo, processo_judicial, ultima_sincronizacao, responsavel_nome, responsavel_cpf, arquivo_recibo_id, arquivo_documento_id",
         )
         .order("data_transmissao", { ascending: false, nullsFirst: false })
         .limit(3000),
-      supabase.from("acompanhamentos").select("*"),
-      supabase.from("auditoria_achados").select("declaracao_id, revisado"),
-      supabase.from("alertas").select("id, declaracao_id, tipo, prioridade, mensagem, resolvido, criado_em"),
-      supabase.from("profiles").select("id, nome, email"),
+      supabase.from("pc_acompanhamentos").select("*"),
+      supabase.from("pc_auditoria_achados").select("declaracao_id, revisado"),
+      supabase.from("pc_alertas").select("id, declaracao_id, tipo, prioridade, mensagem, resolvido, criado_em"),
+      supabase.from("pc_profiles").select("id, nome, email"),
     ]);
 
     return {
@@ -43,22 +43,22 @@ export const obterDeclaracao = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { supabase } = context;
     const [decl, acomp, achados, historico, alertas, log, perfis] = await Promise.all([
-      supabase.from("declaracoes").select("*").eq("id", data.id).maybeSingle(),
-      supabase.from("acompanhamentos").select("*").eq("declaracao_id", data.id).maybeSingle(),
-      supabase.from("auditoria_achados").select("*").eq("declaracao_id", data.id).order("criado_em"),
+      supabase.from("pc_declaracoes").select("*").eq("id", data.id).maybeSingle(),
+      supabase.from("pc_acompanhamentos").select("*").eq("declaracao_id", data.id).maybeSingle(),
+      supabase.from("pc_auditoria_achados").select("*").eq("declaracao_id", data.id).order("criado_em"),
       supabase
-        .from("status_historico")
+        .from("pc_status_historico")
         .select("*")
         .eq("declaracao_id", data.id)
         .order("registrado_em", { ascending: false }),
-      supabase.from("alertas").select("*").eq("declaracao_id", data.id).order("criado_em", { ascending: false }),
+      supabase.from("pc_alertas").select("*").eq("declaracao_id", data.id).order("criado_em", { ascending: false }),
       supabase
-        .from("log_alteracoes")
+        .from("pc_log_alteracoes")
         .select("*")
         .eq("declaracao_id", data.id)
         .order("criado_em", { ascending: false })
         .limit(100),
-      supabase.from("profiles").select("id, nome, email"),
+      supabase.from("pc_profiles").select("id, nome, email"),
     ]);
 
     return {
@@ -99,21 +99,21 @@ export const salvarAcompanhamento = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { userId } = context;
 
-    const { data: perfil } = await supabaseAdmin.from("profiles").select("nome").eq("id", userId).maybeSingle();
+    const { data: perfil } = await supabaseAdmin.from("pc_profiles").select("nome").eq("id", userId).maybeSingle();
     const { data: anterior } = await supabaseAdmin
-      .from("acompanhamentos")
+      .from("pc_acompanhamentos")
       .select("*")
       .eq("declaracao_id", data.declaracao_id)
       .maybeSingle();
 
     if (anterior?.encerrado && !data.encerrado) {
-      const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+      const { data: isAdmin } = await context.supabase.rpc("pc_has_role", { _user_id: userId, _role: "admin" });
       if (!isAdmin) throw new Error("Somente o Administrador pode reabrir um acompanhamento encerrado.");
     }
 
     const registro = { ...data, updated_at: new Date().toISOString() };
     const { error } = await supabaseAdmin
-      .from("acompanhamentos")
+      .from("pc_acompanhamentos")
       .upsert(registro, { onConflict: "declaracao_id" });
     if (error) throw new Error(error.message);
 
@@ -167,7 +167,7 @@ export const salvarAcompanhamento = createServerFn({ method: "POST" })
         valor_novo: rotuloValor((data as Record<string, unknown>)[campo] ?? null),
       }));
 
-    if (linhas.length > 0) await supabaseAdmin.from("log_alteracoes").insert(linhas);
+    if (linhas.length > 0) await supabaseAdmin.from("pc_log_alteracoes").insert(linhas);
 
     return { ok: true, alteracoes: linhas.length };
   });
@@ -178,7 +178,7 @@ export const revisarAchado = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
-      .from("auditoria_achados")
+      .from("pc_auditoria_achados")
       .update({ revisado: true, revisado_por: context.userId, revisado_em: new Date().toISOString() })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
@@ -191,7 +191,7 @@ export const resolverAlerta = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
-      .from("alertas")
+      .from("pc_alertas")
       .update({ resolvido: true, resolvido_por: context.userId, resolvido_em: new Date().toISOString() })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
@@ -202,8 +202,8 @@ export const meuAcesso = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const [perfil, papeis] = await Promise.all([
-      context.supabase.from("profiles").select("id, nome, email").eq("id", context.userId).maybeSingle(),
-      context.supabase.from("user_roles").select("role").eq("user_id", context.userId),
+      context.supabase.from("pc_profiles").select("id, nome, email").eq("id", context.userId).maybeSingle(),
+      context.supabase.from("pc_user_roles").select("role").eq("user_id", context.userId),
     ]);
     return {
       perfil: perfil.data,
@@ -216,8 +216,8 @@ export const listarEquipe = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const [perfis, papeis] = await Promise.all([
-      context.supabase.from("profiles").select("id, nome, email, created_at").order("created_at"),
-      context.supabase.from("user_roles").select("user_id, role"),
+      context.supabase.from("pc_profiles").select("id, nome, email, created_at").order("created_at"),
+      context.supabase.from("pc_user_roles").select("user_id, role"),
     ]);
     return { perfis: perfis.data ?? [], papeis: papeis.data ?? [] };
   });
@@ -235,7 +235,7 @@ export const criarUsuario = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+    const { data: isAdmin } = await context.supabase.rpc("pc_has_role", {
       _user_id: context.userId,
       _role: "admin",
     });
@@ -250,9 +250,9 @@ export const criarUsuario = createServerFn({ method: "POST" })
     });
     if (error || !criado.user) throw new Error(error?.message ?? "Não foi possível criar o usuário.");
 
-    await supabaseAdmin.from("profiles").upsert({ id: criado.user.id, nome: data.nome, email: data.email });
-    await supabaseAdmin.from("user_roles").delete().eq("user_id", criado.user.id);
-    await supabaseAdmin.from("user_roles").insert({ user_id: criado.user.id, role: data.papel });
+    await supabaseAdmin.from("pc_profiles").upsert({ id: criado.user.id, nome: data.nome, email: data.email });
+    await supabaseAdmin.from("pc_user_roles").delete().eq("user_id", criado.user.id);
+    await supabaseAdmin.from("pc_user_roles").insert({ user_id: criado.user.id, role: data.papel });
     return { ok: true };
   });
 
@@ -262,20 +262,20 @@ export const definirPapel = createServerFn({ method: "POST" })
     z.object({ user_id: z.string().uuid(), papel: z.enum(["admin", "operador"]) }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+    const { data: isAdmin } = await context.supabase.rpc("pc_has_role", {
       _user_id: context.userId,
       _role: "admin",
     });
     if (!isAdmin) throw new Error("Apenas Administradores podem alterar perfis de acesso.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
-    await supabaseAdmin.from("user_roles").insert({ user_id: data.user_id, role: data.papel });
+    await supabaseAdmin.from("pc_user_roles").delete().eq("user_id", data.user_id);
+    await supabaseAdmin.from("pc_user_roles").insert({ user_id: data.user_id, role: data.papel });
     return { ok: true };
   });
 
 export const precisaBootstrap = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { count } = await supabaseAdmin.from("profiles").select("id", { count: "exact", head: true });
+  const { count } = await supabaseAdmin.from("pc_profiles").select("id", { count: "exact", head: true });
   return { vazio: (count ?? 0) === 0 };
 });
 
@@ -291,7 +291,7 @@ export const criarPrimeiroAdmin = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { count } = await supabaseAdmin.from("profiles").select("id", { count: "exact", head: true });
+    const { count } = await supabaseAdmin.from("pc_profiles").select("id", { count: "exact", head: true });
     if ((count ?? 0) > 0) throw new Error("Já existe um administrador cadastrado. Peça acesso a ele.");
 
     const { data: criado, error } = await supabaseAdmin.auth.admin.createUser({
@@ -301,9 +301,9 @@ export const criarPrimeiroAdmin = createServerFn({ method: "POST" })
       user_metadata: { nome: data.nome },
     });
     if (error || !criado.user) throw new Error(error?.message ?? "Não foi possível criar o administrador.");
-    await supabaseAdmin.from("profiles").upsert({ id: criado.user.id, nome: data.nome, email: data.email });
-    await supabaseAdmin.from("user_roles").delete().eq("user_id", criado.user.id);
-    await supabaseAdmin.from("user_roles").insert({ user_id: criado.user.id, role: "admin" });
+    await supabaseAdmin.from("pc_profiles").upsert({ id: criado.user.id, nome: data.nome, email: data.email });
+    await supabaseAdmin.from("pc_user_roles").delete().eq("user_id", criado.user.id);
+    await supabaseAdmin.from("pc_user_roles").insert({ user_id: criado.user.id, role: "admin" });
     return { ok: true };
   });
 
@@ -314,7 +314,7 @@ export const baixarArquivo = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { data: decl } = await context.supabase
-      .from("declaracoes")
+      .from("pc_declaracoes")
       .select("arquivo_recibo_id, arquivo_recibo_nome, arquivo_documento_id, arquivo_documento_nome")
       .eq("id", data.declaracaoId)
       .maybeSingle();

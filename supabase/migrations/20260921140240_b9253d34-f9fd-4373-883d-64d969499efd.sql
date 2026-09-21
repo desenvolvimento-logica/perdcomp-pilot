@@ -1,0 +1,11 @@
+ALTER TABLE public.profiles RENAME TO pc_profiles;
+ALTER TABLE public.user_roles RENAME TO pc_user_roles;
+ALTER TABLE public.declaracoes RENAME TO pc_declaracoes;
+ALTER TABLE public.acompanhamentos RENAME TO pc_acompanhamentos;
+ALTER TABLE public.auditoria_achados RENAME TO pc_auditoria_achados;
+ALTER TABLE public.alertas RENAME TO pc_alertas;
+ALTER TABLE public.status_historico RENAME TO pc_status_historico;
+ALTER TABLE public.log_alteracoes RENAME TO pc_log_alteracoes;
+ALTER TYPE public.app_role RENAME TO pc_app_role;
+ALTER FUNCTION public.has_role(uuid, public.pc_app_role) RENAME TO pc_has_role;
+ALTER FUNCTION public.handle_new_user() RENAME TO pc_handle_new_user;

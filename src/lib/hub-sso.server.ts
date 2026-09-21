@@ -29,7 +29,7 @@ export async function garantirSessaoLocal(hubUser: HubUser) {
 
   // Localiza (ou cria) o usuário equivalente neste sistema, pelo e-mail do portal.
   const { data: perfil } = await supabaseAdmin
-    .from("profiles")
+    .from("pc_profiles")
     .select("id")
     .eq("email", hubUser.email)
     .maybeSingle();
@@ -46,13 +46,13 @@ export async function garantirSessaoLocal(hubUser: HubUser) {
     if (error || !criado.user) throw new Error(error?.message ?? "Não foi possível liberar o acesso.");
     userId = criado.user.id;
     await supabaseAdmin
-      .from("profiles")
+      .from("pc_profiles")
       .upsert({ id: userId, nome: hubUser.nome, email: hubUser.email });
     const { count } = await supabaseAdmin
-      .from("user_roles")
+      .from("pc_user_roles")
       .select("user_id", { count: "exact", head: true });
     if ((count ?? 0) === 0) {
-      await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "admin" });
+      await supabaseAdmin.from("pc_user_roles").insert({ user_id: userId, role: "admin" });
     }
   }
 
