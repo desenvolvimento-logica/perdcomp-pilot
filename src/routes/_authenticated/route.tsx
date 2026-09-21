@@ -11,6 +11,22 @@ export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
+    if (data.session) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("pc_profiles").upsert({
+          id: user.id,
+          nome:
+            user.user_metadata?.['nome'] ??
+            user.user_metadata?.['full_name'] ??
+            user.email?.split("@")[0] ??
+            "",
+          email: user.email ?? "",
+        });
+      }
+    }
     if (!data.session) throw redirect({ to: "/" });
   },
   component: Layout,
