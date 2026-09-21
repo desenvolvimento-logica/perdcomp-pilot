@@ -14,7 +14,7 @@ export type Database = {
   }
   public: {
     Tables: {
-      acompanhamentos: {
+      pc_acompanhamentos: {
         Row: {
           aviso_pagamento: boolean
           aviso_pagamento_data: string | null
@@ -80,12 +80,12 @@ export type Database = {
             foreignKeyName: "acompanhamentos_declaracao_id_fkey"
             columns: ["declaracao_id"]
             isOneToOne: true
-            referencedRelation: "declaracoes"
+            referencedRelation: "pc_declaracoes"
             referencedColumns: ["id"]
           },
         ]
       }
-      alertas: {
+      pc_alertas: {
         Row: {
           criado_em: string
           declaracao_id: string
@@ -124,12 +124,12 @@ export type Database = {
             foreignKeyName: "alertas_declaracao_id_fkey"
             columns: ["declaracao_id"]
             isOneToOne: false
-            referencedRelation: "declaracoes"
+            referencedRelation: "pc_declaracoes"
             referencedColumns: ["id"]
           },
         ]
       }
-      auditoria_achados: {
+      pc_auditoria_achados: {
         Row: {
           codigo: string
           criado_em: string
@@ -168,12 +168,12 @@ export type Database = {
             foreignKeyName: "auditoria_achados_declaracao_id_fkey"
             columns: ["declaracao_id"]
             isOneToOne: false
-            referencedRelation: "declaracoes"
+            referencedRelation: "pc_declaracoes"
             referencedColumns: ["id"]
           },
         ]
       }
-      declaracoes: {
+      pc_declaracoes: {
         Row: {
           ajuda_situacao: string | null
           arquivo_documento_id: string | null
@@ -296,7 +296,7 @@ export type Database = {
         }
         Relationships: []
       }
-      log_alteracoes: {
+      pc_log_alteracoes: {
         Row: {
           campo: string
           criado_em: string
@@ -332,12 +332,12 @@ export type Database = {
             foreignKeyName: "log_alteracoes_declaracao_id_fkey"
             columns: ["declaracao_id"]
             isOneToOne: false
-            referencedRelation: "declaracoes"
+            referencedRelation: "pc_declaracoes"
             referencedColumns: ["id"]
           },
         ]
       }
-      profiles: {
+      pc_profiles: {
         Row: {
           created_at: string
           email: string
@@ -358,7 +358,7 @@ export type Database = {
         }
         Relationships: []
       }
-      status_historico: {
+      pc_status_historico: {
         Row: {
           declaracao_id: string
           id: string
@@ -385,25 +385,25 @@ export type Database = {
             foreignKeyName: "status_historico_declaracao_id_fkey"
             columns: ["declaracao_id"]
             isOneToOne: false
-            referencedRelation: "declaracoes"
+            referencedRelation: "pc_declaracoes"
             referencedColumns: ["id"]
           },
         ]
       }
-      user_roles: {
+      pc_user_roles: {
         Row: {
           id: string
-          role: Database["public"]["Enums"]["app_role"]
+          role: Database["public"]["Enums"]["pc_app_role"]
           user_id: string
         }
         Insert: {
           id?: string
-          role: Database["public"]["Enums"]["app_role"]
+          role: Database["public"]["Enums"]["pc_app_role"]
           user_id: string
         }
         Update: {
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          role?: Database["public"]["Enums"]["pc_app_role"]
           user_id?: string
         }
         Relationships: []
@@ -413,16 +413,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      has_role: {
+      pc_has_role: {
         Args: {
-          _role: Database["public"]["Enums"]["app_role"]
+          _role: Database["public"]["Enums"]["pc_app_role"]
           _user_id: string
         }
         Returns: boolean
       }
     }
     Enums: {
-      app_role: "admin" | "operador"
+      pc_app_role: "admin" | "operador"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -550,7 +550,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "operador"],
+      pc_app_role: ["admin", "operador"],
     },
   },
 } as const
