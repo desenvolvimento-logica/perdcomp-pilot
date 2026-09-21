@@ -5,7 +5,7 @@ import { Loader2, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/app-client";
 
-const HUB_URL = "https://hub-ivory-eta.vercel.app";
+const HUB_URL = "https://hub-logica.vercel.app";
 
 export const Route = createFileRoute("/")({
   ssr: false,
