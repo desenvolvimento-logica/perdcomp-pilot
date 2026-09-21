@@ -263,7 +263,7 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
 
 
   async function inserirEmBloco(
-    tabela: "acompanhamentos" | "status_historico" | "alertas" | "auditoria_achados",
+    tabela: "pc_acompanhamentos" | "pc_status_historico" | "pc_alertas" | "pc_auditoria_achados",
     linhas: unknown[],
     onConflict?: string,
   ) {
@@ -281,10 +281,10 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
     new Map(novosAchados.map((a) => [`${a.declaracao_id}|${a.codigo}`, a])).values(),
   );
 
-  await inserirEmBloco("acompanhamentos", novosAcompanhamentos, "declaracao_id");
-  await inserirEmBloco("status_historico", novoHistorico);
-  await inserirEmBloco("auditoria_achados", achadosUnicos, "declaracao_id,codigo");
-  await inserirEmBloco("alertas", novosAlertas);
+  await inserirEmBloco("pc_acompanhamentos", novosAcompanhamentos, "declaracao_id");
+  await inserirEmBloco("pc_status_historico", novoHistorico);
+  await inserirEmBloco("pc_auditoria_achados", achadosUnicos, "declaracao_id,codigo");
+  await inserirEmBloco("pc_alertas", novosAlertas);
 
   return resultado;
 }
