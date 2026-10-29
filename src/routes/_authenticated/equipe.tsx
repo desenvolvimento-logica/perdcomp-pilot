@@ -23,6 +23,8 @@ export const Route = createFileRoute("/_authenticated/equipe")({
       },
       { property: "og:title", content: "Equipe e acessos · PERDCOMP · Conecta Tributário" },
       { property: "og:description", content: "Cadastro de integrantes e perfis de acesso do painel PERDCOMP." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Equipe,

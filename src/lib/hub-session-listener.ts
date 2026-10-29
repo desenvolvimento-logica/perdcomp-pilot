@@ -9,6 +9,7 @@ declare global {
 }
 
 export function initializeHubSessionListener() {
+  if (import.meta.env.DEV) return; // Temporarily use direct entry in the editor only.
   if (typeof window === "undefined" || window.__luziaSessionListener) return;
 
   window.__luziaSessionListener = true;
