@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedDeclaracoesIdRouteImport } from './routes/_authenticated/declaracoes.$id'
+import { Route as ApiPublicGobSyncRouteImport } from './routes/api/public/gob-sync'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,18 +41,25 @@ const AuthenticatedDeclaracoesIdRoute =
     path: '/declaracoes/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicGobSyncRoute = ApiPublicGobSyncRouteImport.update({
+  id: '/api/public/gob-sync',
+  path: '/api/public/gob-sync',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/equipe': typeof AuthenticatedEquipeRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/declaracoes/$id': typeof AuthenticatedDeclaracoesIdRoute
+  '/api/public/gob-sync': typeof ApiPublicGobSyncRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/equipe': typeof AuthenticatedEquipeRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/declaracoes/$id': typeof AuthenticatedDeclaracoesIdRoute
+  '/api/public/gob-sync': typeof ApiPublicGobSyncRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -60,12 +68,14 @@ export interface FileRoutesById {
   '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/declaracoes/$id': typeof AuthenticatedDeclaracoesIdRoute
+  '/api/public/gob-sync': typeof ApiPublicGobSyncRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/equipe' | '/painel' | '/declaracoes/$id'
+  fullPaths:
+    '/' | '/equipe' | '/painel' | '/declaracoes/$id' | '/api/public/gob-sync'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/equipe' | '/painel' | '/declaracoes/$id'
+  to: '/' | '/equipe' | '/painel' | '/declaracoes/$id' | '/api/public/gob-sync'
   id:
     | '__root__'
     | '/'
@@ -73,11 +83,13 @@ export interface FileRouteTypes {
     | '/_authenticated/equipe'
     | '/_authenticated/painel'
     | '/_authenticated/declaracoes/$id'
+    | '/api/public/gob-sync'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  ApiPublicGobSyncRoute: typeof ApiPublicGobSyncRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -117,6 +129,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDeclaracoesIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/gob-sync': {
+      id: '/api/public/gob-sync'
+      path: '/api/public/gob-sync'
+      fullPath: '/api/public/gob-sync'
+      preLoaderRoute: typeof ApiPublicGobSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -138,6 +157,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  ApiPublicGobSyncRoute: ApiPublicGobSyncRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
