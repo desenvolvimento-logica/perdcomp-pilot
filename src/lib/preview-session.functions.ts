@@ -24,6 +24,7 @@ export const abrirSessaoDeAjustes = createServerFn({ method: "POST" }).handler(a
     type: "magiclink", token_hash: tokenHash,
   });
   if (verificationError || !verified.session) {
+    console.error("Preview session verification:", verificationError?.message);
     throw new Error("Não foi possível validar a sessão de ajustes.");
   }
   return { access_token: verified.session.access_token, refresh_token: verified.session.refresh_token };

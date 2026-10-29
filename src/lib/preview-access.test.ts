@@ -1,11 +1,12 @@
-import { describe, expect, test } from "bun:test";
+import { describe, it as test } from "node:test";
+import { strict as assert } from "node:assert";
 import { permiteAcessoTemporario } from "./preview-access";
 
 describe("acesso temporário sem Luz.IA", () => {
   test("libera a prévia durante os ajustes", () => {
-    expect(permiteAcessoTemporario(true)).toBe(true);
+    assert.equal(permiteAcessoTemporario(true), true);
   });
   test("não libera o acesso temporário na publicação", () => {
-    expect(permiteAcessoTemporario(false)).toBe(false);
+    assert.equal(permiteAcessoTemporario(false), false);
   });
 });
