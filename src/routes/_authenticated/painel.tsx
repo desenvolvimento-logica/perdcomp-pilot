@@ -564,6 +564,9 @@ function Painel() {
                     >
                       {l.situacao ?? "—"}
                     </span>
+                    {l.encerrado && (
+                      <span className="mt-1 block text-xs font-medium text-primary">Acompanhamento concluído</span>
+                    )}
                   </td>
                   <td className="numero px-4 py-3 text-xs">{dataHora(l.data_transmissao)}</td>
                   <td className="numero px-4 py-3 text-right">{moeda(l.saldo_restante)}</td>
