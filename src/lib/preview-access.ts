@@ -1,4 +1,4 @@
-// The temporary entry must never be enabled in a published build.
-export function permiteAcessoTemporario(development: boolean): boolean {
-  return development === true;
+// Hub SSO is required in both preview and production.
+export function permiteAcessoTemporario(_development: boolean): boolean {
+  return false;
 }

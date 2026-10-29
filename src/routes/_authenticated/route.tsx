@@ -6,12 +6,10 @@ import { ShieldCheck, LogOut, LayoutList, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/app-client";
 import { meuAcesso } from "@/lib/perdcomp.functions";
 import { Button } from "@/components/ui/button";
-import { garantirSessaoDeAjustes } from "@/lib/preview-session";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    await garantirSessaoDeAjustes();
     const { data } = await supabase.auth.getSession();
     if (data.session) {
       const {
