@@ -14,6 +14,7 @@ import {
 } from "@/lib/perdcomp.functions";
 import { moeda, dataHora, documento, tomSituacao, abrirPdf } from "@/lib/formato";
 import { proximaSincronizacaoDiaria } from "@/lib/gob-schedule";
+import { visivelNaAba } from "@/lib/acompanhamento-visibility";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -244,14 +245,11 @@ function Painel() {
   );
 
   const filtradas = linhas.filter((l) => {
-    if (aba !== "terceiros" && l.terceiro) return false;
-    if (aba === "ativas" && l.encerrado) return false;
-    if (aba === "encerradas" && !l.encerrado) return false;
+    if (!visivelNaAba(aba, l)) return false;
     if (aba === "alertas" && l.alertas === 0) return false;
     if (aba === "auditoria" && l.achados === 0) return false;
     if (aba === "prazos" && l.prazos.length === 0) return false;
     if (aba === "semos" && (l.ordemServico.trim() !== "" || l.encerrado)) return false;
-    if (aba === "terceiros" && !l.terceiro) return false;
     if (situacao !== "todas" && l.situacao !== situacao) return false;
     if (responsavel === "sem" && l.responsavel_nome) return false;
     if (responsavel !== "todos" && responsavel !== "sem" && l.responsavel_nome !== responsavel) return false;
@@ -566,6 +564,9 @@ function Painel() {
                     >
                       {l.situacao ?? "—"}
                     </span>
+                    {l.encerrado && (
+                      <span className="mt-1 block text-xs font-medium text-primary">Acompanhamento concluído</span>
+                    )}
                   </td>
                   <td className="numero px-4 py-3 text-xs">{dataHora(l.data_transmissao)}</td>
                   <td className="numero px-4 py-3 text-right">{moeda(l.saldo_restante)}</td>
