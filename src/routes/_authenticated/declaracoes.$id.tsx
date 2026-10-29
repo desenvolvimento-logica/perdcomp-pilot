@@ -35,6 +35,8 @@ export const Route = createFileRoute("/_authenticated/declaracoes/$id")({
         property: "og:description",
         content: "Extrato consolidado, auditoria, histórico e controle interno da declaração PER/DCOMP.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Detalhe,
