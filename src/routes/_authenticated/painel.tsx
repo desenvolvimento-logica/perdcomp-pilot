@@ -14,7 +14,7 @@ import {
 } from "@/lib/perdcomp.functions";
 import { moeda, dataHora, documento, tomSituacao, abrirPdf } from "@/lib/formato";
 import { proximaSincronizacaoDiaria } from "@/lib/gob-schedule";
-import { visivelNaAba } from "@/lib/acompanhamento-visibility";
+import { correspondeAoStatus, visivelNaAba } from "@/lib/acompanhamento-visibility";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -250,7 +250,7 @@ function Painel() {
     if (aba === "auditoria" && l.achados === 0) return false;
     if (aba === "prazos" && l.prazos.length === 0) return false;
     if (aba === "semos" && (l.ordemServico.trim() !== "" || l.encerrado)) return false;
-    if (situacao !== "todas" && l.situacao !== situacao) return false;
+    if (!correspondeAoStatus(situacao, l)) return false;
     if (responsavel === "sem" && l.responsavel_nome) return false;
     if (responsavel !== "todos" && responsavel !== "sem" && l.responsavel_nome !== responsavel) return false;
     if (busca) {
@@ -434,12 +434,16 @@ function Painel() {
               className="pl-9"
             />
           </div>
-          <Select value={situacao} onValueChange={setSituacao}>
+          <Select value={situacao} onValueChange={(valor) => {
+            setSituacao(valor);
+            if (valor === "concluido") setAba("encerradas");
+          }}>
             <SelectTrigger className="w-56">
               <SelectValue placeholder="Situação" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas as situações</SelectItem>
+              <SelectItem value="concluido">Concluído</SelectItem>
               {situacoes.map((s) => (
                 <SelectItem key={s} value={s}>
                   {s}
