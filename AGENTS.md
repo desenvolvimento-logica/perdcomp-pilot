@@ -11,3 +11,4 @@
 
 - Temporary direct entry is restricted to Vite development on both client and server; production keeps Hub SSO and existing authenticated data handlers, so editor access cannot become a public login bypass.
 - GOB automatic synchronization is scheduled once daily by Cloud cron through a secret-authenticated server route and a unique local-date claim; browsers only display the countdown and invoke manual synchronization, avoiding duplicate API work across sessions.
+- Before publishing the daily GOB route, restore Hub access; after publishing, activate the existing `pc-gob-sync-diaria` cron job (currently paused until the endpoint is deployed).
