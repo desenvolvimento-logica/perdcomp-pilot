@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { lerTodasPaginas } from "./read-all";
 
 export const sincronizar = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -15,25 +16,26 @@ export const listarDeclaracoes = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase } = context;
     const [decls, acomps, achados, alertas, perfis] = await Promise.all([
-      supabase
+      lerTodasPaginas((inicio, fim) => supabase
         .from("pc_declaracoes")
         .select(
           "id, numero_perdcomp, cnpj, nome, razao_social, tipo_documento, tipo_credito, grupo_tributo, codigo_receita, situacao, ajuda_situacao, periodo_apuracao, data_transmissao, ultimo_registro, valor_total_credito, valor_utilizado, saldo_restante, credito_atualizado, total_debitos, processo_administrativo, processo_judicial, ultima_sincronizacao, responsavel_nome, responsavel_cpf, arquivo_recibo_id, arquivo_documento_id",
         )
         .order("data_transmissao", { ascending: false, nullsFirst: false })
-        .limit(3000),
-      supabase.from("pc_acompanhamentos").select("*"),
-      supabase.from("pc_auditoria_achados").select("declaracao_id, revisado"),
-      supabase.from("pc_alertas").select("id, declaracao_id, tipo, prioridade, mensagem, resolvido, criado_em"),
-      supabase.from("pc_profiles").select("id, nome, email"),
+        .order("id")
+        .range(inicio, fim)),
+      lerTodasPaginas((inicio, fim) => supabase.from("pc_acompanhamentos").select("*").order("declaracao_id").range(inicio, fim)),
+      lerTodasPaginas((inicio, fim) => supabase.from("pc_auditoria_achados").select("declaracao_id, revisado").order("id").range(inicio, fim)),
+      lerTodasPaginas((inicio, fim) => supabase.from("pc_alertas").select("id, declaracao_id, tipo, prioridade, mensagem, resolvido, criado_em").order("id").range(inicio, fim)),
+      lerTodasPaginas((inicio, fim) => supabase.from("pc_profiles").select("id, nome, email").order("id").range(inicio, fim)),
     ]);
 
     return {
-      declaracoes: decls.data ?? [],
-      acompanhamentos: acomps.data ?? [],
-      achados: achados.data ?? [],
-      alertas: alertas.data ?? [],
-      perfis: perfis.data ?? [],
+      declaracoes: decls,
+      acompanhamentos: acomps,
+      achados,
+      alertas,
+      perfis,
     };
   });
 

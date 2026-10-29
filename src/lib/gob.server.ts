@@ -1,5 +1,6 @@
 // Server-only: fala com a API do GOB e grava no banco interno.
 // O token nunca sai do servidor.
+import { lerTodasPaginas } from "./read-all";
 
 type GobPerdcomp = Record<string, unknown>;
 
@@ -124,8 +125,8 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
   const agora = new Date().toISOString();
 
   // Estado atual do banco, em poucas consultas (evita 1 ida ao banco por registro).
-  const { data: atuais } = await supabaseAdmin.from("pc_declaracoes").select("id, gob_id, situacao");
-  const porGobId = new Map((atuais ?? []).map((d) => [d.gob_id, d]));
+  const atuais = await lerTodasPaginas((inicio, fim) => supabaseAdmin.from("pc_declaracoes").select("id, gob_id, situacao").order("id").range(inicio, fim));
+  const porGobId = new Map(atuais.map((d) => [d.gob_id, d]));
 
   const payloads = registros
     .map((r) => {
@@ -185,8 +186,8 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
     if (error) throw new Error(`Falha ao gravar declarações: ${error.message}`);
   }
 
-  const { data: depois } = await supabaseAdmin.from("pc_declaracoes").select("id, gob_id");
-  const idPorGobId = new Map((depois ?? []).map((d) => [d.gob_id, d.id]));
+  const depois = await lerTodasPaginas((inicio, fim) => supabaseAdmin.from("pc_declaracoes").select("id, gob_id").order("id").range(inicio, fim));
+  const idPorGobId = new Map(depois.map((d) => [d.gob_id, d.id]));
 
   const novosAcompanhamentos: Array<{ declaracao_id: string }> = [];
   const novoHistorico: Array<{ declaracao_id: string; situacao_anterior: string | null; situacao_nova: string }> = [];
@@ -210,11 +211,11 @@ export async function sincronizarComGob(limite = 3000): Promise<ResultadoSync> {
   const achadosExistentes = new Set<string>();
   for (let i = 0; i < ids.length; i += 500) {
     const fatia = ids.slice(i, i + 500);
-    const { data: ach } = await supabaseAdmin
+    const ach = await lerTodasPaginas((inicio, fim) => supabaseAdmin
       .from("pc_auditoria_achados")
       .select("declaracao_id, codigo")
-      .in("declaracao_id", fatia);
-    for (const a of ach ?? []) achadosExistentes.add(`${a.declaracao_id}|${a.codigo}`);
+      .in("declaracao_id", fatia).order("id").range(inicio, fim));
+    for (const a of ach) achadosExistentes.add(`${a.declaracao_id}|${a.codigo}`);
   }
 
   for (const { registro: r, payload } of payloads) {
