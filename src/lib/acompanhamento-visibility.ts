@@ -5,3 +5,9 @@ export function visivelNaAba(aba: string, registro: { terceiro: boolean; encerra
   if (aba === "ativas") return !registro.encerrado;
   return true;
 }
+
+export function correspondeAoStatus(status: string, registro: { situacao: string | null; encerrado: boolean }): boolean {
+  if (status === "todas") return true;
+  if (status === "concluido") return registro.encerrado;
+  return registro.situacao === status;
+}
