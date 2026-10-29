@@ -1,4 +1,5 @@
 # Sincronização GOB
+- [ ] Corrigir leitura limitada a 1000 e validar contagem ativa contra todos os registros.
 - [x] Remover sincronização ao abrir e a cada cinco minutos; preservar botão manual.
 - [x] Configurar uma execução diária às 00:00 (São Paulo), independentemente de sessões abertas.
 - [x] Validar segurança, frequência e painel atualizado.
