@@ -13,6 +13,7 @@ import {
   extrairResponsaveis,
 } from "@/lib/perdcomp.functions";
 import { moeda, dataHora, documento, tomSituacao, abrirPdf } from "@/lib/formato";
+import { proximaSincronizacaoDiaria } from "@/lib/gob-schedule";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -156,30 +157,16 @@ function Painel() {
     },
   });
 
-  // Sincroniza ao abrir o app e a cada 5 minutos enquanto a sessão estiver ativa.
-  const INTERVALO_SYNC = 5 * 60 * 1000;
-  const dispararSync = sync.mutate;
-  const [proximaSync, setProximaSync] = useState<number>(() => Date.now() + INTERVALO_SYNC);
+  // Automatic GOB work runs in the daily server schedule, never in browser sessions.
   const [agora, setAgora] = useState<number>(() => Date.now());
-
-  useEffect(() => {
-    dispararSync({ silencioso: true });
-    setProximaSync(Date.now() + INTERVALO_SYNC);
-    const id = setInterval(() => {
-      if (typeof document !== "undefined" && document.hidden) return;
-      dispararSync({ silencioso: true });
-      setProximaSync(Date.now() + INTERVALO_SYNC);
-    }, INTERVALO_SYNC);
-    return () => clearInterval(id);
-  }, [dispararSync, INTERVALO_SYNC]);
 
   useEffect(() => {
     const id = setInterval(() => setAgora(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
 
-  const restanteMs = Math.max(0, proximaSync - agora);
-  const contador = `${String(Math.floor(restanteMs / 60000)).padStart(2, "0")}:${String(
+  const restanteMs = proximaSincronizacaoDiaria(agora) - agora;
+  const contador = `${String(Math.floor(restanteMs / 3600000)).padStart(2, "0")}:${String(Math.floor((restanteMs % 3600000) / 60000)).padStart(2, "0")}:${String(
     Math.floor((restanteMs % 60000) / 1000),
   ).padStart(2, "0")}`;
 
@@ -386,16 +373,14 @@ function Painel() {
           </Button>
           <Button
             className="h-auto flex-col items-start gap-0.5 py-2"
-            onClick={() => {
-              sync.mutate({});
-              setProximaSync(Date.now() + INTERVALO_SYNC);
-            }}
+            onClick={() => sync.mutate({})}
             disabled={sync.isPending}
           >
             <span className="flex items-center gap-2">
               {sync.isPending ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
               Sincronizar com o GOB
             </span>
+            <span className="text-xs font-normal opacity-80">Automática às 00:00 · Brasília</span>
             <span className="text-xs font-normal opacity-80">
               Próxima sincronização em:{" "}
               <span className="numero">{sync.isPending ? "sincronizando…" : contador}</span>

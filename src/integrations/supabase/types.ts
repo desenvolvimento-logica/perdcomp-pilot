@@ -296,6 +296,30 @@ export type Database = {
         }
         Relationships: []
       }
+      pc_gob_sync_diaria: {
+        Row: {
+          concluido_em: string | null
+          dia: string
+          erro: string | null
+          iniciado_em: string
+          sucesso: boolean | null
+        }
+        Insert: {
+          concluido_em?: string | null
+          dia: string
+          erro?: string | null
+          iniciado_em?: string
+          sucesso?: boolean | null
+        }
+        Update: {
+          concluido_em?: string | null
+          dia?: string
+          erro?: string | null
+          iniciado_em?: string
+          sucesso?: boolean | null
+        }
+        Relationships: []
+      }
       pc_log_alteracoes: {
         Row: {
           campo: string
@@ -413,6 +437,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      pc_configurar_cron_gob: { Args: { _segredo: string }; Returns: number }
       pc_has_role: {
         Args: {
           _role: Database["public"]["Enums"]["pc_app_role"]
