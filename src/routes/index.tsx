@@ -4,7 +4,6 @@ import { Loader2, ShieldAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/app-client";
-import { garantirSessaoDeAjustes } from "@/lib/preview-session";
 
 const HUB_URL = "https://hub-logica.vercel.app";
 
@@ -33,7 +32,6 @@ export const Route = createFileRoute("/")({
 function Entrada() {
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
-  const [erroAjustes, setErroAjustes] = useState<string | null>(null);
 
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
@@ -50,15 +48,6 @@ function Entrada() {
   useEffect(() => {
     let cancelado = false;
     (async () => {
-      try {
-        await garantirSessaoDeAjustes();
-      } catch (error) {
-        if (!cancelado) {
-          setErroAjustes(error instanceof Error ? error.message : "Não foi possível abrir o sistema.");
-          setChecking(false);
-        }
-        return;
-      }
       const { data } = await supabase.auth.getSession();
       if (cancelado) return;
       if (data.session) {
@@ -91,9 +80,9 @@ function Entrada() {
         <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
           <ShieldAlert className="size-6" />
         </div>
-        <h1 className="font-display text-2xl font-semibold">{erroAjustes ? "Acesso para ajustes indisponível" : "Acesso não autorizado"}</h1>
+        <h1 className="font-display text-2xl font-semibold">Acesso não autorizado</h1>
         <p className="text-sm text-muted-foreground">
-          {erroAjustes ?? "O acesso a este aplicativo é feito exclusivamente pelo Luz.IA. Abra o PERDCOMP a partir do portal."}
+          O acesso a este aplicativo é feito exclusivamente pelo Luz.IA. Abra o PERDCOMP a partir do portal.
         </p>
         <Button asChild>
           <a href={HUB_URL}>Ir para o Luz.IA</a>
